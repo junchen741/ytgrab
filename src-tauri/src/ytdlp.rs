@@ -67,8 +67,15 @@ pub fn parse_progress_line(line: &str) -> Option<f64> {
     (total > 0.0).then(|| (done / total * 100.0).clamp(0.0, 100.0))
 }
 
+/// 改用 Windows 的憑證存放區，不用 yt-dlp 內建的 certifi。
+/// 防毒軟體（例如 Norton）的 HTTPS 檢查會換上自己的根憑證，只有 Windows 憑證存放區信任它，
+/// 用 certifi 的話會出現 CERTIFICATE_VERIFY_FAILED，整個抓不到影片。
+const SYSTEM_CERTS: [&str; 2] = ["--compat-options", "no-certifi"];
+
 fn base_args(tools: &Tools) -> Vec<String> {
     vec![
+        SYSTEM_CERTS[0].into(),
+        SYSTEM_CERTS[1].into(),
         "--ignore-config".into(),
         "--no-playlist".into(),
         "--js-runtimes".into(),
@@ -167,7 +174,7 @@ pub async fn version(tools: &Tools) -> Result<String, String> {
 /// `yt-dlp -U` 會就地更新 exe（先改名舊檔再換上新檔），所以 yt-dlp.exe 必須放在可寫入的資料夾。
 pub async fn self_update(tools: &Tools) -> Result<String, String> {
     let mut cmd = command(&tools.ytdlp);
-    cmd.arg("-U");
+    cmd.args(update_args());
     let out = run(cmd).await.map_err(|e| e.to_string())?;
     if !out.success {
         return Err(format!("{}\n{}", out.stdout, out.stderr));
@@ -175,9 +182,24 @@ pub async fn self_update(tools: &Tools) -> Result<String, String> {
     version(tools).await
 }
 
+fn update_args() -> Vec<String> {
+    vec![SYSTEM_CERTS[0].into(), SYSTEM_CERTS[1].into(), "-U".into()]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn uses_windows_certificate_store() {
+        // 防毒軟體（例如 Norton）的 HTTPS 檢查會換上自己的根憑證，只有 Windows 憑證存放區信任它；
+        // yt-dlp 內建的 certifi 不認得，會出現 CERTIFICATE_VERIFY_FAILED
+        let tools = Tools::from_dir(Path::new("bin"));
+        for args in [base_args(&tools), update_args()] {
+            let pos = args.iter().position(|a| a == "--compat-options").expect("缺少 --compat-options");
+            assert_eq!(args[pos + 1], "no-certifi", "{args:?}");
+        }
+    }
 
     #[test]
     fn parse_info_guesses_tags_from_title() {
