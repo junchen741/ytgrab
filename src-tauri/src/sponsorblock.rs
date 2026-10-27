@@ -82,9 +82,8 @@ pub fn suggest_trim(non_music: &[Range], duration: f64) -> TrimSpec {
 /// 查無資料時伺服器回 404（body 是 `[]`），也會落在「非成功狀態 → 空清單」。
 pub async fn fetch_non_music(video_id: &str) -> Vec<Range> {
     let url = query_url(video_id);
-    let client = match reqwest::Client::builder().timeout(Duration::from_secs(5)).build() {
-        Ok(c) => c,
-        Err(_) => return Vec::new(),
+    let Some(client) = http_client() else {
+        return Vec::new();
     };
     let Ok(resp) = client.get(url).send().await else {
         return Vec::new();
@@ -96,6 +95,15 @@ pub async fn fetch_non_music(video_id: &str) -> Vec<Range> {
         Ok(body) => parse_segments(&body, video_id),
         Err(_) => Vec::new(),
     }
+}
+
+/// reqwest 用的是 `rustls-no-provider`：建立 client 前一定要先指定加密函式庫，否則會 panic。
+/// 跟 tauri-plugin-updater 一樣用 ring；已經有人指定過就沿用。
+fn http_client() -> Option<reqwest::Client> {
+    if rustls::crypto::CryptoProvider::get_default().is_none() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+    }
+    reqwest::Client::builder().timeout(Duration::from_secs(5)).build().ok()
 }
 
 #[cfg(test)]
@@ -148,6 +156,12 @@ mod tests {
     fn suggest_merges_adjacent_segments() {
         let got = suggest_trim(&[r(0.5, 10.0), r(10.2, 20.0)], 300.0);
         assert_eq!(got, TrimSpec { start: 20.0, end: 300.0, cuts: vec![] });
+    }
+
+    #[test]
+    fn http_client_can_be_built() {
+        // reqwest 用 rustls-no-provider 時，沒先指定加密函式庫就建立 client 會直接 panic
+        assert!(http_client().is_some());
     }
 
     #[test]
