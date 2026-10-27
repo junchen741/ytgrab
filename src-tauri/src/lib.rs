@@ -11,6 +11,7 @@ pub mod logging;
 pub mod tools;
 pub mod ytdlp;
 pub mod media;
+pub mod settings;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
