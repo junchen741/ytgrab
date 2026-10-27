@@ -1,0 +1,2 @@
+# hook 是 sh 腳本，必須用 LF 換行；Windows 的 git 預設會在取出檔案時把換行轉成 CRLF，sh 就跑不動
+.githooks/* text eol=lf

@@ -1,0 +1,38 @@
+#!/bin/sh
+# 推送前檢查：要推上去的每個 commit，作者和提交者的信箱都必須是這個專案的 noreply 信箱。
+# 這個 repo 是公開的，真實信箱一旦推上去就永遠公開，所以在推送前擋下來。
+# 每個 clone 要啟用一次：git config core.hooksPath .githooks
+
+allowed="281223317+junchen741@users.noreply.github.com"
+zero=$(git hash-object --stdin </dev/null | tr '0-9a-f' '0')
+failed=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    # 刪除遠端的分支或標籤，沒有新的 commit 要檢查
+    if [ "$local_sha" = "$zero" ]; then
+        continue
+    fi
+    if [ "$remote_sha" = "$zero" ]; then
+        # 新的分支或標籤：檢查所有還不在遠端的 commit
+        range="$local_sha --not --remotes"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+    bad=$(git log --format='%h %ae %ce' $range | while read -r hash author committer; do
+        if [ "$author" != "$allowed" ] || [ "$committer" != "$allowed" ]; then
+            echo "  $hash  作者：$author  提交者：$committer"
+        fi
+    done)
+    if [ -n "$bad" ]; then
+        echo "推送已取消：下面這些 commit 的信箱不是 $allowed" >&2
+        echo "$bad" >&2
+        failed=1
+    fi
+done
+
+if [ "$failed" -ne 0 ]; then
+    echo "" >&2
+    echo "這個 repo 是公開的，推上去信箱就會永遠公開。" >&2
+    echo "請先確認 git config user.email 是 $allowed，再修正上面的 commit（可以請 Claude 幫忙）。" >&2
+fi
+exit $failed
