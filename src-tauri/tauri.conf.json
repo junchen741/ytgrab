@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ytgrab",
+  "productName": "YTGrab 音樂抓抓",
   "version": "0.1.0",
   "identifier": "app.ytgrab.desktop",
   "build": {
@@ -10,27 +10,46 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "withGlobalTauri": true,
     "windows": [
       {
-        "title": "ytgrab",
-        "width": 800,
-        "height": 600
+        "label": "main",
+        "title": "YTGrab 音樂抓抓",
+        "width": 960,
+        "height": 780,
+        "minWidth": 720,
+        "minHeight": 600
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' data: asset: http://asset.localhost https://i.ytimg.com; media-src 'self' asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost",
+      "devCsp": null,
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPCACHE/**"]
+      }
     }
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "binaries/yt-dlp.exe": "bin/yt-dlp.exe",
+      "binaries/ffmpeg.exe": "bin/ffmpeg.exe",
+      "binaries/deno.exe": "bin/deno.exe",
+      "resources/THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt"
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["TradChinese"]
+      }
+    }
   }
 }

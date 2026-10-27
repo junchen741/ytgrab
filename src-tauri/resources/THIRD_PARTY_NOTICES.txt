@@ -1,0 +1,24 @@
+YTGrab 音樂抓抓 使用了以下第三方軟體，感謝這些專案的作者：
+
+yt-dlp
+  授權：The Unlicense
+  網址：https://github.com/yt-dlp/yt-dlp
+
+FFmpeg（BtbN/FFmpeg-Builds 的 LGPL 版本，含 LAME MP3 編碼器）
+  授權：GNU LGPL 2.1 或更新版本
+  原始碼：https://github.com/FFmpeg/FFmpeg
+  建置腳本：https://github.com/BtbN/FFmpeg-Builds
+
+Deno
+  授權：MIT License
+  網址：https://github.com/denoland/deno
+
+wavesurfer.js
+  授權：BSD 3-Clause License
+  網址：https://github.com/katspaugh/wavesurfer.js
+
+Tauri
+  授權：MIT License 或 Apache License 2.0
+  網址：https://tauri.app
+
+本軟體僅供個人使用。下載內容的著作權屬於原作者，請尊重著作權。
