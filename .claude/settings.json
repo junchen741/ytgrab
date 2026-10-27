@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "ask": [
+      "Bash(git push *)",
+      "Bash(gh repo create *)",
+      "Bash(gh release create *)",
+      "Bash(*release.ps1*)",
+      "PowerShell(git push *)",
+      "PowerShell(gh repo create *)",
+      "PowerShell(gh release create *)",
+      "PowerShell(*release.ps1*)"
+    ]
+  }
+}
