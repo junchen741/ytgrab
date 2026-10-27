@@ -7,6 +7,7 @@ pub mod errors;
 pub mod report;
 pub mod peaks;
 pub mod ffmpeg_args;
+pub mod logging;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
