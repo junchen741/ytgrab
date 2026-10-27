@@ -3,6 +3,7 @@ pub mod title;
 pub mod filename;
 pub mod segments;
 pub mod sponsorblock;
+pub mod errors;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
