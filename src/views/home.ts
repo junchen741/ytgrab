@@ -47,12 +47,18 @@ export function homeView(p: HomeProps): HTMLElement {
     ),
     h('div', { class: 'url-row' }, input, h('button', { class: 'primary big', onclick: submit }, '開始')),
     hint,
+    // 路徑放在凹槽框裡，看起來像可以調整的欄位；點框本身或「變更」都會開選資料夾。
+    // 框不放進 Tab 順序（tabindex -1），用鍵盤的人用「變更」，免得同一個動作要按兩次 Tab
     h(
       'div',
       { class: 'folder' },
-      '存檔位置：',
-      h('span', { class: 'path' }, p.outputDir),
-      h('button', { class: 'link', onclick: p.onChangeFolder }, '變更'),
+      h('span', { class: 'folder-label' }, '存檔位置'),
+      h(
+        'div',
+        { class: 'folder-row' },
+        h('button', { class: 'path-well', tabindex: -1, title: '按一下選擇存檔的資料夾', onclick: p.onChangeFolder }, p.outputDir),
+        h('button', { onclick: p.onChangeFolder }, '變更'),
+      ),
     ),
     h(
       'footer',

@@ -130,8 +130,25 @@ input::placeholder { color: var(--ink-muted); opacity: 1; }
 .url-row { display: flex; gap: 12px; align-items: center; }
 .url-input { flex: 1; min-width: 0; font-size: 18px; padding: 11px 14px; }
 .home .hint { margin: -4px 0 0; min-height: 1.6em; }
-.folder { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; font-size: 15px; color: var(--ink-muted); }
-.folder .path { color: var(--ink); overflow-wrap: anywhere; }
+.folder { display: flex; flex-direction: column; gap: 6px; }
+.folder-label { font-size: 15px; font-weight: 700; color: var(--ink-muted); }
+.folder-row { display: flex; align-items: stretch; gap: 12px; }
+/* 存檔路徑：外觀和輸入框一樣是凹槽，但它是按鈕（點了開選資料夾），不要有按鍵的厚度和下沉 */
+button.path-well,
+button.path-well:active {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 2px solid var(--key-edge);
+  border-radius: 6px;
+  background: var(--well);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+  transform: none;
+  color: var(--ink);
+  font-weight: 400;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
 footer { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; font-size: 14px; color: var(--ink-muted); }
 .footer-links { display: flex; gap: 14px; }
 
