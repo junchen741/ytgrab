@@ -1,4 +1,7 @@
-//! 把 16-bit PCM 串流壓縮成波形峰值；記憶體用量和影片長度無關。
+//! 把 16-bit PCM 串流壓縮成畫波形用的數值；記憶體用量和影片長度無關。
+//!
+//! 每一段（1/50 秒）取平均音量（RMS），不取最大值：音量壓得很滿的流行歌幾乎每一段的最大值都頂到滿格，
+//! 畫出來頂端是一條平線，看起來像被切掉；平均音量才看得出段落和起伏。前端畫的時候會再縮放到滿版。
 
 pub const SAMPLE_RATE: u32 = 8_000;
 pub const PEAKS_PER_SECOND: u32 = 50;
@@ -10,7 +13,8 @@ pub fn samples_per_peak() -> usize {
 pub struct PeakAccumulator {
     samples_per_peak: usize,
     in_bucket: usize,
-    bucket_max: u32,
+    /// 這一段 sample 的平方和（-1.0～1.0 的比例）
+    bucket_sum_sq: f64,
     pending_byte: Option<u8>,
     total_samples: u64,
     peaks: Vec<f32>,
@@ -19,7 +23,7 @@ pub struct PeakAccumulator {
 impl PeakAccumulator {
     pub fn new(samples_per_peak: usize) -> Self {
         assert!(samples_per_peak > 0);
-        Self { samples_per_peak, in_bucket: 0, bucket_max: 0, pending_byte: None, total_samples: 0, peaks: Vec::new() }
+        Self { samples_per_peak, in_bucket: 0, bucket_sum_sq: 0.0, pending_byte: None, total_samples: 0, peaks: Vec::new() }
     }
 
     /// 接收任意長度的 s16le 位元組；跨 chunk 的半個 sample 會暫存到下一次。
@@ -46,7 +50,8 @@ impl PeakAccumulator {
     }
 
     fn push_sample(&mut self, s: i16) {
-        self.bucket_max = self.bucket_max.max(u32::from(s.unsigned_abs()));
+        let v = f64::from(s) / 32768.0;
+        self.bucket_sum_sq += v * v;
         self.in_bucket += 1;
         self.total_samples += 1;
         if self.in_bucket == self.samples_per_peak {
@@ -55,12 +60,13 @@ impl PeakAccumulator {
     }
 
     fn flush(&mut self) {
-        self.peaks.push(self.bucket_max as f32 / 32768.0);
-        self.bucket_max = 0;
+        // 最後一段可能不滿，要除以實際的 sample 數
+        self.peaks.push((self.bucket_sum_sq / self.in_bucket as f64).sqrt() as f32);
+        self.bucket_sum_sq = 0.0;
         self.in_bucket = 0;
     }
 
-    /// 回傳（峰值, 實際長度秒數）。
+    /// 回傳（每段的平均音量, 實際長度秒數）。
     pub fn finish(mut self) -> (Vec<f32>, f64) {
         if self.in_bucket > 0 {
             self.flush();
@@ -78,30 +84,39 @@ mod tests {
         samples.iter().flat_map(|s| s.to_le_bytes()).collect()
     }
 
+    fn assert_close(got: &[f32], want: &[f32]) {
+        assert_eq!(got.len(), want.len(), "{got:?} vs {want:?}");
+        for (g, w) in got.iter().zip(want) {
+            assert!((g - w).abs() < 1e-6, "{got:?} vs {want:?}");
+        }
+    }
+
     #[test]
-    fn max_abs_per_bucket() {
+    fn rms_per_bucket() {
+        // 第一段 [0, 400] 的平均音量（RMS）是 400/√2，不是最大值 400
         let mut acc = PeakAccumulator::new(2);
-        acc.push_bytes(&bytes(&[100, -200, 300, 50]));
+        acc.push_bytes(&bytes(&[0, 400, -300, 300]));
         let (peaks, duration) = acc.finish();
-        assert_eq!(peaks, vec![200.0 / 32768.0, 300.0 / 32768.0]);
+        assert_close(&peaks, &[400.0 / 2f32.sqrt() / 32768.0, 300.0 / 32768.0]);
         assert_eq!(duration, 4.0 / SAMPLE_RATE as f64);
     }
 
     #[test]
     fn handles_samples_split_across_chunks() {
-        let data = bytes(&[100, -200, 300, 50]);
+        let data = bytes(&[0, 400, -300, 300]);
         let mut acc = PeakAccumulator::new(2);
         for b in &data {
             acc.push_bytes(std::slice::from_ref(b));
         }
-        assert_eq!(acc.finish().0, vec![200.0 / 32768.0, 300.0 / 32768.0]);
+        assert_close(&acc.finish().0, &[400.0 / 2f32.sqrt() / 32768.0, 300.0 / 32768.0]);
     }
 
     #[test]
     fn partial_last_bucket_is_flushed() {
+        // 最後一段只有 1 個 sample，平均要除以 1，不是除以整段的長度
         let mut acc = PeakAccumulator::new(2);
-        acc.push_bytes(&bytes(&[1, 2, 3]));
-        assert_eq!(acc.finish().0.len(), 2);
+        acc.push_bytes(&bytes(&[100, -100, 3]));
+        assert_close(&acc.finish().0, &[100.0 / 32768.0, 3.0 / 32768.0]);
     }
 
     #[test]

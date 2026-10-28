@@ -1,5 +1,7 @@
 // 開發用畫面預覽：/preview.html?view=<home|progress|progress-wait|editor|done|error>[&long=1]
 // 用假資料畫出單一畫面，給 scripts/preview-shots.ps1 截圖與檢查橫向捲軸。正式版不會打包這一頁。
+// 剪歌畫面可以加 &peaks=<網址>，改用真實歌曲的波形（JSON：{ "duration": 秒, "peaks": [...] }，每秒 50 點）。
+import type { PreparedAudio } from '../api/types';
 import '../styles.css';
 import { mount } from '../ui/dom';
 import { doneView } from '../views/done';
@@ -37,6 +39,18 @@ const home = (url: string | null) =>
     onOpenNotices: log('onOpenNotices'),
   });
 
+const editor = (prepared: PreparedAudio) =>
+  editorView({
+    video: fixtureVideo(long),
+    prepared,
+    // 音訊長度要和 prepared.duration 一樣：音訊載入後 wavesurfer 會改用音訊本身的長度，
+    // 太短的話區段會被當成畫面外而不畫，拖拉新增的刪除段也會短到被當成誤觸刪掉
+    audioUrl: silentWavUrl(prepared.duration),
+    coverUrl: fixtureCoverUrl(),
+    onExport: async (req) => log('onExport')(req),
+    onCancel: log('onCancel'),
+  }).el;
+
 function render(): Node {
   switch (view) {
     // 讀取與下載都在首頁進行：先畫首頁，再像 main.ts 一樣呼叫 startWork
@@ -56,17 +70,16 @@ function render(): Node {
       return h.el;
     }
     case 'editor': {
-      const prepared = fixturePrepared(long);
-      return editorView({
-        video: fixtureVideo(long),
-        prepared,
-        // 音訊長度要和 prepared.duration 一樣：音訊載入後 wavesurfer 會改用音訊本身的長度，
-        // 太短的話區段會被當成畫面外而不畫，拖拉新增的刪除段也會短到被當成誤觸刪掉
-        audioUrl: silentWavUrl(prepared.duration),
-        coverUrl: fixtureCoverUrl(),
-        onExport: async (req) => log('onExport')(req),
-        onCancel: log('onCancel'),
-      }).el;
+      const peaksUrl = params.get('peaks');
+      if (peaksUrl) {
+        void fetch(peaksUrl)
+          .then((r) => r.json() as Promise<{ duration: number; peaks: number[] }>)
+          .then(({ duration, peaks }) =>
+            mount(root, editor({ ...fixturePrepared(false), duration, peaks, suggested: { start: 0, end: duration, cuts: [] } })),
+          );
+        return document.createTextNode('');
+      }
+      return editor(fixturePrepared(long));
     }
     case 'done':
       return doneView({ path: fixtureSavedPath(long), onReveal: log('onReveal'), onNext: log('onNext') });
