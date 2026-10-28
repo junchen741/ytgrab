@@ -36,7 +36,9 @@
   color: var(--ink);
 }
 
-* { box-sizing: border-box; }
+*,
+*::before,
+*::after { box-sizing: border-box; }
 
 /* 機身：深色漸層加一層很淡的直向髮絲紋，這是唯一的材質效果 */
 body {
