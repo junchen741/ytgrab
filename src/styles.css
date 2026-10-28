@@ -126,6 +126,7 @@ input::placeholder { color: var(--ink-muted); opacity: 1; }
 }
 .display.warn { color: var(--amber); text-shadow: var(--glow-amber); }
 .display p { margin: 0; }
+.display > div:empty { display: none; } /* 例如進度畫面還沒拿到影片資訊時的空位 */
 .display :focus-visible { outline-color: var(--phosphor); }
 .display-title { font-size: 26px; font-weight: 700; line-height: 1.3; }
 .dig { font-family: "Doto", monospace; font-weight: 900; letter-spacing: 0.02em; }
@@ -140,6 +141,48 @@ input::placeholder { color: var(--ink-muted); opacity: 1; }
 footer { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; font-size: 14px; color: var(--ink-muted); }
 .footer-links { display: flex; gap: 14px; }
 
+/* ---- 影片資訊（放在螢幕窗裡）：縮圖或封面＋歌名＋頻道與長度 ---- */
+.video-header { display: flex; gap: 14px; align-items: center; margin-bottom: 4px; }
+.video-header > div { min-width: 0; }
+.video-header .thumb { flex: none; width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 4px; background: var(--phosphor-dim); }
+.video-header .thumb.square { width: 64px; aspect-ratio: 1; }
+.video-title { font-size: 18px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.video-meta { font-size: 14px; opacity: 0.75; overflow-wrap: anywhere; }
+
+/* ---- 進度畫面：螢幕窗裡的段式進度條 ---- */
+.meter { --step: 60ms; --sweep: 2.4s; display: flex; align-items: center; gap: 14px; margin-top: 6px; }
+.meter-cells { flex: 1; display: flex; gap: 3px; height: 18px; }
+.meter-cells i { position: relative; flex: 1; border-radius: 1px; background: var(--phosphor-dim); }
+.meter-cells i.on { background: var(--phosphor); box-shadow: var(--glow); }
+.meter-value { min-width: 3.4em; text-align: right; font-size: 26px; line-height: 1; }
+.meter.indeterminate .meter-value { display: none; }
+/* 不確定進度：亮格來回掃動。每一格在一個循環裡亮兩次：去程用格子本身，回程用 ::after。
+   去程第 i 格在 i×step 亮，回程在 (39−i)×step 亮；一個循環是 40 步。 */
+.meter.indeterminate .meter-cells i { animation: meter-pass var(--sweep) linear infinite; animation-delay: calc((var(--i) - 40) * var(--step)); }
+.meter.indeterminate .meter-cells i::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--phosphor);
+  box-shadow: var(--glow);
+  opacity: 0;
+  animation: meter-pass-back var(--sweep) linear infinite;
+  animation-delay: calc((-1 - var(--i)) * var(--step));
+}
+@keyframes meter-pass {
+  0% { background: var(--phosphor); box-shadow: var(--glow); }
+  8%, 100% { background: var(--phosphor-dim); box-shadow: none; }
+}
+@keyframes meter-pass-back {
+  0% { opacity: 1; }
+  8%, 100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .meter.indeterminate .meter-cells i,
+  .meter.indeterminate .meter-cells i::after { animation: none; }
+}
+
 .notice { margin: 0 0 12px; padding: 8px 12px; border-left: 4px solid var(--amber); border-radius: 4px; background: var(--well); font-size: 15px; }
 .banner { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px; background: var(--amber); color: var(--amber-ink); font-weight: 700; }
 .banner:empty { display: none; }
@@ -148,13 +191,6 @@ footer { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: spac
 .lead, .hint { color: var(--muted); }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-.video-header { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
-.video-header .thumb { width: 160px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--border); }
-.video-header .thumb.square { width: 96px; aspect-ratio: 1; }
-.video-title { font-weight: 600; font-size: 1.1rem; }
-.video-meta { color: var(--muted); }
-
-progress { width: 100%; height: 14px; accent-color: var(--accent); }
 
 .waveform { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 0; }
 /* 沒裁的時候頭尾拉桿畫在波形框外面（見 editor.ts 的 placeEdgeHandle），wavesurfer 的捲動容器預設會把它裁掉。
@@ -175,4 +211,4 @@ input.time { width: 7.5em; text-align: center; font-variant-numeric: tabular-num
 .actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
 .error-message { font-size: 1.15rem; }
 .error-text { color: var(--danger); }
-.view.done, .view.error, .view.progress { margin-top: 48px; }
+.view.done, .view.error { margin-top: 48px; }
