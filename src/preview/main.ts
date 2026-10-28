@@ -41,15 +41,19 @@ function render(): Node {
       p.setPercent(null);
       return p.el;
     }
-    case 'editor':
+    case 'editor': {
+      const prepared = fixturePrepared(long);
       return editorView({
         video: fixtureVideo(long),
-        prepared: fixturePrepared(long),
-        audioUrl: silentWavUrl(1),
+        prepared,
+        // 音訊長度要和 prepared.duration 一樣：音訊載入後 wavesurfer 會改用音訊本身的長度，
+        // 太短的話區段會被當成畫面外而不畫，拖拉新增的刪除段也會短到被當成誤觸刪掉
+        audioUrl: silentWavUrl(prepared.duration),
         coverUrl: fixtureCoverUrl(),
         onExport: async (req) => log('onExport')(req),
         onCancel: log('onCancel'),
       }).el;
+    }
     case 'done':
       return doneView({ path: fixtureSavedPath(long), onReveal: log('onReveal'), onNext: log('onNext') });
     case 'error':

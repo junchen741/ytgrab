@@ -11,9 +11,10 @@ type Region = ReturnType<RegionsPlugin['addRegion']>;
 
 // 波形畫在螢幕窗（深色玻璃）上：頭尾不要的部分蓋一層半透明玻璃色，看起來像沒亮；刪除段蓋半透明紅色。
 const COLOR_EDGE = 'rgba(13, 27, 26, 0.72)';
-// 紅色蓋在青綠色的波形上容易混成灰色，所以不透明度偏高，styles.css 另外替刪除段加紅色邊框
-const COLOR_CUT = 'rgba(255, 123, 123, 0.45)';
-const COLOR_CUT_SELECTED = 'rgba(255, 123, 123, 0.7)';
+// 紅色蓋在青綠色的波形上容易混成灰色：不透明度要到 0.64 以上，紅色才壓得過波形的青綠色。
+// styles.css 另外替刪除段加紅色邊框
+const COLOR_CUT = 'rgba(255, 123, 123, 0.7)';
+const COLOR_CUT_SELECTED = 'rgba(255, 123, 123, 0.88)';
 /** 拖拉出來比這更短的紅色區段視為誤觸，自動刪掉（秒）。 */
 const MIN_CUT = 0.5;
 /** 頭尾灰色區段的拉桿寬度（像素）與顏色。 */
@@ -427,7 +428,8 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     h(
       'div',
       { class: 'transport' },
-      h('button', { class: 'primary', onclick: () => previewFrom(currentTrim().start) }, '▶ 試聽成品'),
+      // 每個畫面只有一顆琥珀主鍵，這個畫面是「存成 MP3」
+      h('button', { onclick: () => previewFrom(currentTrim().start) }, '▶ 試聽成品'),
       h('button', { onclick: () => previewFrom(endPreviewStart(currentTrim())) }, '▶ 聽結尾'),
       h('button', { onclick: togglePlain }, '⏯ 播放／暫停', h('span', { class: 'key-hint' }, '空白鍵')),
     ),
