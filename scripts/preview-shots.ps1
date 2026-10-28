@@ -22,7 +22,7 @@ $OutDir = (Resolve-Path $OutDir).Path
 $cases = @('home', 'home-long', 'progress', 'progress-long', 'progress-wait', 'editor', 'editor-long', 'done', 'done-long', 'error', 'error-long')
 if ($Only) { $cases = @($cases | Where-Object { $_ -eq $Only }) }
 if ($cases.Count -eq 0) { Write-Error "沒有這個案例：$Only"; exit 2 }
-$sizes = @(@(720, 600), @(960, 780))
+$sizes = @(@(720, 600), @(900, 740))
 # 這兩個案例多拍一張整頁的（只看畫面，不檢查捲軸）
 $fullPage = @{ 'editor' = 1700; 'editor-long' = 1700 }
 
@@ -63,7 +63,7 @@ foreach ($case in $cases) {
   }
   if ($fullPage.ContainsKey($case)) {
     $fh = $fullPage[$case]
-    Invoke-Edge @($shotWait, "--screenshot=$(Join-Path $OutDir "$case-960x$fh.png")") 960 $fh $url | Out-Null
+    Invoke-Edge @($shotWait, "--screenshot=$(Join-Path $OutDir "$case-900x$fh.png")") 900 $fh $url | Out-Null
   }
 }
 
