@@ -14,8 +14,12 @@ export function errorView(p: { error: AppError; onCopyReport(): Promise<void>; o
   return h(
     'section',
     { class: 'view error' },
-    h('h2', {}, '出了一點問題'),
-    h('p', { class: 'error-message' }, p.error.message),
+    h(
+      'div',
+      { class: 'display warn' },
+      h('p', { class: 'display-title' }, '出了一點問題'),
+      h('p', { class: 'error-message' }, p.error.message),
+    ),
     h(
       'div',
       { class: 'row' },

@@ -5,8 +5,12 @@ export function doneView(p: { path: string; onReveal(): void; onNext(): void }):
   return h(
     'section',
     { class: 'view done' },
-    h('h2', {}, '完成了！'),
-    h('p', {}, '已儲存：', h('strong', {}, name)),
+    h(
+      'div',
+      { class: 'display' },
+      h('p', { class: 'display-title' }, '完成了！'),
+      h('p', { class: 'saved' }, '已儲存：', h('strong', {}, name)),
+    ),
     h('p', { class: 'hint' }, '用 USB 線把檔案複製到手機的「Music」資料夾就能聽了。'),
     h(
       'div',

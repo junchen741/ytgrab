@@ -29,18 +29,6 @@
   --glow: 0 0 7px rgba(124, 245, 208, 0.5);
   --glow-amber: 0 0 7px rgba(240, 165, 49, 0.45);
 
-  /* 暫時的別名：還沒改版的畫面規則在用，畫面全部改完後移除 */
-  --surface: var(--well);
-  --border: var(--key-edge);
-  --accent: var(--amber);
-  --accent-text: var(--amber-ink);
-  --accent-soft: rgba(240, 165, 49, 0.16);
-  --text: var(--ink);
-  --muted: var(--ink-muted);
-  --danger: var(--cut);
-  --warn-bg: var(--amber);
-  --warn-text: var(--amber-ink);
-
   color-scheme: dark;
   font-family: "Microsoft JhengHei UI", "Microsoft JhengHei", "Segoe UI", system-ui, sans-serif;
   font-size: 17px;
@@ -67,7 +55,6 @@ body {
 .nameplate { padding-top: 20px; font-size: 22px; font-weight: 700; line-height: 1.3; }
 #app { flex: 1; display: flex; flex-direction: column; padding-top: 14px; padding-bottom: 24px; }
 
-h2 { font-size: 1.4rem; margin: 0 0 12px; }
 
 /* ---- 實體按鍵：底下的陰影是按鍵的厚度，按下去會往下沉 ---- */
 button {
@@ -278,8 +265,13 @@ input.switch:checked::before { left: 22px; }
 .banner { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px; background: var(--amber); color: var(--amber-ink); font-weight: 700; }
 .banner:empty { display: none; }
 
-/* ---- 以下是還沒改版的畫面規則 ---- */
-.lead, .hint { color: var(--muted); }
-.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-.error-message { font-size: 1.15rem; }
-.view.done, .view.error { margin-top: 48px; }
+/* ---- 完成與錯誤畫面 ---- */
+.view.done,
+.view.error { display: flex; flex-direction: column; gap: 14px; }
+.display .saved,
+.display .error-message { overflow-wrap: anywhere; }
+.display .error-message { font-size: 18px; }
+
+/* ---- 共用 ---- */
+.hint { margin: 0; color: var(--ink-muted); }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
