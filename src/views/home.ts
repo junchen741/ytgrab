@@ -35,27 +35,35 @@ export function homeView(p: HomeProps): HTMLElement {
     }
   });
 
+  // 產品名已經在機身的名牌上（index.html），螢幕窗只顯示狀態
   return h(
     'section',
     { class: 'view home' },
-    h('h1', {}, 'YTGrab 音樂抓抓'),
-    h('p', { class: 'lead' }, '貼上 YouTube 網址，把音樂剪好存成 MP3。'),
-    h('div', { class: 'row' }, input, h('button', { class: 'primary big', onclick: submit }, '開始')),
+    h(
+      'div',
+      { class: 'display' },
+      h('p', { class: 'display-title' }, '準備好了'),
+      h('p', {}, '貼上 YouTube 網址，把歌剪好存成 MP3。'),
+    ),
+    h('div', { class: 'url-row' }, input, h('button', { class: 'primary big', onclick: submit }, '開始')),
     hint,
     h(
       'div',
       { class: 'folder' },
-      h('span', {}, '存檔位置：'),
-      h('code', {}, p.outputDir),
+      '存檔位置：',
+      h('span', { class: 'path' }, p.outputDir),
       h('button', { class: 'link', onclick: p.onChangeFolder }, '變更'),
     ),
     h(
       'footer',
       {},
-      `v${p.version}・僅供個人使用，請尊重著作權・`,
-      h('button', { class: 'link', onclick: p.onOpenNotices }, '授權資訊'),
-      '・',
-      h('button', { class: 'link', onclick: p.onOpenLogs }, '開啟記錄資料夾'),
+      h('span', {}, `v${p.version}　僅供個人使用，請尊重著作權`),
+      h(
+        'span',
+        { class: 'footer-links' },
+        h('button', { class: 'link', onclick: p.onOpenNotices }, '授權資訊'),
+        h('button', { class: 'link', onclick: p.onOpenLogs }, '開啟記錄資料夾'),
+      ),
     ),
   );
 }
