@@ -21,4 +21,8 @@ Tauri
   授權：MIT License 或 Apache License 2.0
   網址：https://tauri.app
 
+Doto 字型
+  授權：SIL Open Font License 1.1
+  網址：https://fonts.google.com/specimen/Doto
+
 本軟體僅供個人使用。下載內容的著作權屬於原作者，請尊重著作權。

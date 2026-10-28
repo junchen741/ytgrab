@@ -1,81 +1,148 @@
+@import '@fontsource/doto/900.css';
+
+/* 錄音機外觀：整個視窗是一台黑色機身的家用音響，重點只有一個：會發光的螢幕窗。
+   一律黑色機身，不跟著 Windows 深淺色切換。對比由 src/lib/contrast.test.ts 檢查。 */
 :root {
-  --bg: #f8fafc;
-  --surface: #ffffff;
-  --text: #0f172a;
-  --muted: #475569;
-  --border: #cbd5e1;
-  --accent: #0f766e;
-  --accent-text: #ffffff;
-  --accent-soft: #ccfbf1;
-  --danger: #b91c1c;
-  --warn-bg: #fef3c7;
-  --warn-text: #78350f;
-  --radius: 10px;
-  color-scheme: light dark;
+  /* 機身 */
+  --body-top: #2C2F33;
+  --body-bottom: #1E2124;
+  --ink: #DADDE1;
+  --ink-muted: #9AA1A9; /* 不能放在 --key 上（對比不夠），按鍵上的小字用 --ink-on-key */
+  --ink-on-key: #B4BAC1;
+  --bevel: #464B51;
+  --key: #3A3F45;
+  --key-edge: #50565D;
+  --key-shadow: #101214;
+  --well: #16181B;
+  --rule: rgba(218, 221, 225, 0.14);
+  /* 螢幕窗 */
+  --glass: #0D1B1A;
+  --phosphor: #7CF5D0;
+  --phosphor-dim: #2C4843;
+  --cut: #FF7B7B;
+  /* 主按鍵、開關、焦點框 */
+  --amber: #F0A531;
+  --amber-deep: #B9741A;
+  --amber-ink: #2A1B05;
+
+  --radius: 7px;
+  --glow: 0 0 7px rgba(124, 245, 208, 0.5);
+  --glow-amber: 0 0 7px rgba(240, 165, 49, 0.45);
+
+  /* 暫時的別名：還沒改版的畫面規則在用，畫面全部改完後移除 */
+  --surface: var(--well);
+  --border: var(--key-edge);
+  --accent: var(--amber);
+  --accent-text: var(--amber-ink);
+  --accent-soft: rgba(240, 165, 49, 0.16);
+  --text: var(--ink);
+  --muted: var(--ink-muted);
+  --danger: var(--cut);
+  --warn-bg: var(--amber);
+  --warn-text: var(--amber-ink);
+
+  color-scheme: dark;
   font-family: "Microsoft JhengHei UI", "Microsoft JhengHei", "Segoe UI", system-ui, sans-serif;
   font-size: 17px;
   line-height: 1.6;
-  color: var(--text);
-  background: var(--bg);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0b1220;
-    --surface: #111a2e;
-    --text: #e2e8f0;
-    --muted: #94a3b8;
-    --border: #334155;
-    --accent: #14b8a6;
-    --accent-text: #042f2e;
-    --accent-soft: #134e4a;
-    --danger: #f87171;
-    --warn-bg: #422006;
-    --warn-text: #fde68a;
-  }
+  color: var(--ink);
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); }
-#app { max-width: 880px; margin: 0 auto; padding: 24px; }
+
+/* 機身：深色漸層加一層很淡的直向髮絲紋，這是唯一的材質效果 */
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--body-top), var(--body-bottom));
+  background-attachment: fixed;
+}
+
+.nameplate,
+#app { width: 100%; max-width: 880px; margin: 0 auto; padding-left: 26px; padding-right: 26px; }
+.nameplate { padding-top: 20px; font-size: 22px; font-weight: 700; line-height: 1.3; }
+#app { flex: 1; display: flex; flex-direction: column; padding-top: 14px; padding-bottom: 24px; }
+
 h1 { font-size: 1.8rem; margin: 0 0 4px; }
 h2 { font-size: 1.4rem; margin: 0 0 12px; }
-.lead, .hint, footer { color: var(--muted); }
-.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 
-input[type="text"] {
-  font: inherit;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-}
-.url-input { flex: 1; min-width: 280px; font-size: 1.05rem; }
-
+/* ---- 實體按鍵：底下的陰影是按鍵的厚度，按下去會往下沉 ---- */
 button {
   font: inherit;
-  padding: 10px 18px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 9px 18px 7px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  border: 1px solid var(--key-edge);
+  background: var(--key);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--key-shadow);
   cursor: pointer;
 }
-button:hover:not(:disabled) { border-color: var(--accent); }
-button:disabled { opacity: 0.6; cursor: default; }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
-button.big { font-size: 1.15rem; padding: 12px 28px; }
-button.link { background: none; border: none; padding: 0 4px; color: var(--accent); text-decoration: underline; }
-button.link.danger { color: var(--danger); }
-button.nudge { padding: 6px 10px; font-size: 0.9rem; }
+button:hover:not(:disabled) { filter: brightness(1.1); }
+button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-shadow); }
+button:disabled { opacity: 0.55; transform: translateY(3px); box-shadow: none; cursor: default; }
+button.primary { background: var(--amber); border-color: var(--amber-deep); color: var(--amber-ink); box-shadow: 0 4px 0 var(--amber-deep); }
+button.primary:active:not(:disabled) { box-shadow: 0 1px 0 var(--amber-deep); }
+button.big { font-size: 1.1rem; min-height: 50px; padding: 11px 30px 9px; }
+button.nudge { min-height: 36px; padding: 5px 12px 4px; font-size: 15px; box-shadow: 0 3px 0 var(--key-shadow); }
+button.nudge:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--key-shadow); }
+button .key-hint { font-weight: 400; font-size: 13px; color: var(--ink-on-key); margin-left: 6px; }
+
+/* 文字連結：不是按鍵，沒有厚度 */
+button.link,
+button.link:active { min-height: 0; padding: 0 4px; background: none; border: none; box-shadow: none; transform: none; font-weight: 400; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+button.link.danger { color: var(--cut); }
+
+/* ---- 凹槽輸入框 ---- */
+input[type="text"] {
+  font: inherit;
+  padding: 9px 12px;
+  border: 2px solid var(--key-edge);
+  border-radius: 6px;
+  background: var(--well);
+  color: var(--ink);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+}
+input::placeholder { color: var(--ink-muted); opacity: 1; }
+
+:focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
+
+/* ---- 螢幕窗：不能設 overflow: hidden，剪歌畫面的頭尾拉桿會畫到波形框外面 ---- */
+.display {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px;
+  border: 2px solid var(--bevel);
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 35%), var(--glass);
+  box-shadow: inset 0 3px 12px rgba(0, 0, 0, 0.75);
+  color: var(--phosphor);
+  text-shadow: var(--glow);
+}
+.display.warn { color: var(--amber); text-shadow: var(--glow-amber); }
+.display p { margin: 0; }
+.display :focus-visible { outline-color: var(--phosphor); }
+.display-title { font-size: 26px; font-weight: 700; line-height: 1.3; }
+.dig { font-family: "Doto", monospace; font-weight: 900; letter-spacing: 0.02em; }
+
+.notice { margin: 0 0 12px; padding: 8px 12px; border-left: 4px solid var(--amber); border-radius: 4px; background: var(--well); font-size: 15px; }
+.banner { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px; background: var(--amber); color: var(--amber-ink); font-weight: 700; }
+.banner:empty { display: none; }
+
+/* ---- 以下是還沒改版的畫面規則 ---- */
+.lead, .hint, footer { color: var(--muted); }
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.url-input { flex: 1; min-width: 280px; font-size: 1.05rem; }
 
 .folder { margin-top: 24px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 code { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; word-break: break-all; }
 footer { margin-top: 48px; font-size: 0.9rem; }
-
-.banner { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px; background: var(--warn-bg); color: var(--warn-text); }
-.banner:empty { display: none; }
 
 .video-header { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
 .video-header .thumb { width: 160px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--border); }
@@ -102,7 +169,6 @@ input.time { width: 7.5em; text-align: center; font-variant-numeric: tabular-num
 .cut-list li.empty { color: var(--muted); }
 .tags { display: grid; grid-template-columns: 5em 1fr; gap: 8px 12px; align-items: center; }
 .actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
-.notice { background: var(--accent-soft); border-radius: var(--radius); padding: 8px 12px; margin-bottom: 12px; }
 .error-message { font-size: 1.15rem; }
 .error-text { color: var(--danger); }
 .view.done, .view.error, .view.progress { margin-top: 48px; }

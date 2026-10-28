@@ -10,6 +10,10 @@ export default defineConfig(() => ({
   //
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
+  // 字型一律輸出成獨立檔案，不要內嵌成 data: 網址：tauri.conf.json 的 CSP（default-src 'self'）會擋掉 data: 字型
+  build: {
+    assetsInlineLimit: (filePath: string) => (/\.woff2?$/.test(filePath) ? false : undefined),
+  },
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,
