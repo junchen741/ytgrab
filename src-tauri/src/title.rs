@@ -30,6 +30,10 @@ static TRAILING_NOISE: LazyLock<Regex> = LazyLock::new(|| {
 });
 static QUOTED_TITLE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[《「『【]([^》」』】]+)[》」』】]").unwrap());
+/// 標題結尾的「covered by 某人」或「(Cover by 某人)」，第 1 組是翻唱的人。
+static COVERED_BY: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)[\s\-|｜/]*[(\[【（]?\s*cover(?:ed)?\s+by\s+([^)\]】）|｜]+?)\s*[)\]】）]?\s*$").unwrap()
+});
 
 pub fn guess_tags(raw_title: &str, channel: &str, track: Option<&str>, artist: Option<&str>) -> SongTags {
     let non_empty = |s: Option<&str>| s.map(str::trim).filter(|s| !s.is_empty()).map(str::to_string);
@@ -40,7 +44,21 @@ pub fn guess_tags(raw_title: &str, channel: &str, track: Option<&str>, artist: O
     let cleaned = clean_title(raw_title);
     let channel_artist = clean_channel(channel);
 
-    if let Some(caps) = QUOTED_TITLE.captures(&cleaned) {
+    // 翻唱影片：演出者寫實際在唱的人（上傳的頻道常常不是唱的人），其餘部分照一般規則猜歌名
+    if let Some(caps) = COVERED_BY.captures(&cleaned) {
+        let whole = caps.get(0).expect("第 0 組一定存在");
+        let rest = cleaned[..whole.start()].trim();
+        if !rest.is_empty() {
+            let singer = caps[1].trim().to_string();
+            return SongTags { artist: singer, ..guess_from_cleaned(rest, channel_artist) };
+        }
+    }
+    guess_from_cleaned(&cleaned, channel_artist)
+}
+
+/// 從已經清掉雜訊的標題猜歌名與演出者；猜不出演出者時用 `channel_artist`。
+fn guess_from_cleaned(cleaned: &str, channel_artist: String) -> SongTags {
+    if let Some(caps) = QUOTED_TITLE.captures(cleaned) {
         let whole = caps.get(0).expect("第 0 組一定存在");
         let before = cleaned[..whole.start()]
             .trim_end_matches(|c: char| c.is_whitespace() || matches!(c, '-' | '–' | '—'))
@@ -60,7 +78,7 @@ pub fn guess_tags(raw_title: &str, channel: &str, track: Option<&str>, artist: O
             return SongTags { title: t.trim().to_string(), artist: a.trim().to_string() };
         }
     }
-    SongTags { title: cleaned, artist: channel_artist }
+    SongTags { title: cleaned.to_string(), artist: channel_artist }
 }
 
 pub fn clean_title(raw: &str) -> String {
@@ -159,5 +177,31 @@ mod tests {
     fn channel_cleanup() {
         assert_eq!(clean_channel("Ava Lin - Topic"), "Ava Lin");
         assert_eq!(clean_channel("AvaLinVEVO"), "AvaLin");
+    }
+
+    // 翻唱影片：演出者寫實際在唱的人，不是上傳頻道
+
+    #[test]
+    fn covered_by_after_quoted_title() {
+        let got = guess_tags("【晨光 Ava Lin】covered by Mio", "Studio Hoshi", None, None);
+        assert_eq!(got, tags("晨光 Ava Lin", "Mio"));
+    }
+
+    #[test]
+    fn cover_by_in_brackets_overrides_dash_artist() {
+        let got = guess_tags("Ava Lin - Morning Light (Cover by Mio)", "Mio Channel", None, None);
+        assert_eq!(got, tags("Morning Light", "Mio"));
+    }
+
+    #[test]
+    fn covered_by_is_case_insensitive_and_noise_is_still_removed() {
+        let got = guess_tags("Morning Light COVERED BY Mio【歌詞】", "Studio Hoshi", None, None);
+        assert_eq!(got, tags("Morning Light", "Mio"));
+    }
+
+    #[test]
+    fn title_that_is_only_covered_by_keeps_old_behavior() {
+        let got = guess_tags("covered by Mio", "Studio Hoshi", None, None);
+        assert_eq!(got, tags("covered by Mio", "Studio Hoshi"));
     }
 }
