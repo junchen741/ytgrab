@@ -86,6 +86,9 @@ footer { margin-top: 48px; font-size: 0.9rem; }
 progress { width: 100%; height: 14px; accent-color: var(--accent); }
 
 .waveform { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 0; }
+/* 沒裁的時候頭尾拉桿畫在波形框外面（見 editor.ts 的 placeEdgeHandle），wavesurfer 的捲動容器預設會把它裁掉。
+   這裡的波形永遠填滿寬度、不會捲動，所以改成不裁。 */
+.waveform ::part(scroll) { overflow: visible; }
 .legend { font-size: 0.9rem; color: var(--muted); margin: 6px 0 16px; }
 .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin: 0 4px 0 8px; }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-top: 16px; }

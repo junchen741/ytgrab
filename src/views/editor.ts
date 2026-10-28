@@ -1,9 +1,9 @@
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
-import type { AppError, ExportRequest, PreparedAudio, TrimSpec, VideoInfo } from '../api/types';
+import type { AppError, ExportRequest, PreparedAudio, Range, TrimSpec, VideoInfo } from '../api/types';
 import { endPreviewStart, nextPlaybackAction } from '../lib/playback';
 import { formatTime, parseTime } from '../lib/time';
-import { approxLength, EDGE_MIN, MIN_GAP, trimFromRegions } from '../lib/trim';
+import { approxLength, draggedPastEdge, EDGE_MIN, MIN_GAP, tailMinSeconds, trimFromRegions } from '../lib/trim';
 import { h } from '../ui/dom';
 import { videoHeader } from '../ui/videoHeader';
 
@@ -14,6 +14,40 @@ const COLOR_CUT = 'rgba(220, 38, 38, 0.30)';
 const COLOR_CUT_SELECTED = 'rgba(220, 38, 38, 0.60)';
 /** 拖拉出來比這更短的紅色區段視為誤觸，自動刪掉（秒）。 */
 const MIN_CUT = 0.5;
+/** 頭尾灰色區段的拉桿寬度（像素）與顏色。 */
+const EDGE_HANDLE_PX = 14;
+const COLOR_EDGE_HANDLE = 'rgba(71, 85, 105, 0.9)';
+
+/**
+ * 頭尾灰色區段的拉桿外觀（`side` 是灰色區段朝向波形內部的那一側）。
+ * wavesurfer 原本的把手只有 6px、畫在區段內側；改成較寬的拉桿，用不到的另一側把手隱藏。位置由 placeEdgeHandle 決定。
+ */
+function styleEdgeHandle(r: Region, side: 'left' | 'right', label: string) {
+  const outer = side === 'left' ? 'right' : 'left';
+  const hidden = r.element?.querySelector<HTMLElement>(`[part~="region-handle-${outer}"]`);
+  if (hidden) hidden.style.display = 'none';
+  const handle = r.element?.querySelector<HTMLElement>(`[part~="region-handle-${side}"]`);
+  if (!handle) return;
+  handle.style.width = `${EDGE_HANDLE_PX}px`;
+  handle.style.setProperty(outer, 'auto');
+  handle.style.background = COLOR_EDGE_HANDLE;
+  handle.style.border = 'none';
+  handle.style.borderRadius = '4px';
+  handle.title = label;
+}
+
+/**
+ * 拉桿一律貼在「要」與「不要」的交界、放在不要的那一側，不擋到要保留的波形：
+ * - 有裁：拉桿在灰色區段裡、貼著內緣。
+ * - 沒裁：拉桿在波形框外面、內側貼齊波形邊緣（需要 styles.css 讓波形容器不裁掉超出的部分）；
+ *   這時灰色區段只剩幾個像素寬（見 tailMinSeconds），一併設成透明，看起來就是完全沒有灰色。
+ */
+function placeEdgeHandle(r: Region, side: 'left' | 'right', trimmed: boolean) {
+  const handle = r.element?.querySelector<HTMLElement>(`[part~="region-handle-${side}"]`);
+  if (!handle || !r.element) return;
+  handle.style.setProperty(side, trimmed ? '0' : '100%');
+  r.element.style.backgroundColor = trimmed ? COLOR_EDGE : 'transparent';
+}
 
 export interface EditorProps {
   video: VideoInfo;
@@ -48,12 +82,20 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   let head!: Region;
   let tail!: Region;
   let ready = false;
+  /** 終點灰色區段的最小寬度（秒），ready 時依波形寬度算出來，見 tailMinSeconds。 */
+  let tailMin = EDGE_MIN;
   const cuts = new Map<string, Region>();
   let selected: Region | null = null;
 
   const currentTrim = (): TrimSpec =>
     ready
-      ? trimFromRegions(head.end, tail.start, duration, [...cuts.values()].map((r) => ({ start: r.start, end: r.end })))
+      ? trimFromRegions(
+          head.end,
+          tail.start,
+          duration,
+          [...cuts.values()].map((r) => ({ start: r.start, end: r.end })),
+          tailMin,
+        )
       : { start: suggested.start, end: suggested.end, cuts: suggested.cuts.map((c) => ({ ...c })) };
 
   // ---- 起點／終點 ----
@@ -66,6 +108,10 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     startInput.value = formatTime(t.start);
     endInput.value = formatTime(t.end);
     lengthLabel.textContent = `成品長度約 ${formatTime(approxLength(t))}`;
+    if (ready) {
+      placeEdgeHandle(head, 'right', t.start > 0);
+      placeEdgeHandle(tail, 'left', t.end < duration);
+    }
   }
 
   function setStart(v: number) {
@@ -78,7 +124,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   function setEnd(v: number) {
     if (!ready) return;
     const clamped = Math.max(Math.min(v, duration), head.end + MIN_GAP);
-    tail.setOptions({ start: Math.min(clamped, duration - EDGE_MIN), end: duration });
+    tail.setOptions({ start: Math.min(clamped, duration - tailMin), end: duration });
     refresh();
   }
 
@@ -135,6 +181,17 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     renderCutList();
   }
 
+  /** 程式自己加的刪除區段（建議值、復原）；加的當下 region-created 會同步觸發，用 addingCut 讓它略過，不要被當成誤觸刪掉。 */
+  let addingCut = false;
+  function addCut(c: Range) {
+    addingCut = true;
+    try {
+      registerCut(regions.addRegion({ start: c.start, end: c.end, color: COLOR_CUT }));
+    } finally {
+      addingCut = false;
+    }
+  }
+
   function removeCut(r: Region) {
     cuts.delete(r.id);
     if (selected === r) selected = null;
@@ -149,12 +206,44 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     renderCutList();
   }
 
+  /** 把頭尾與刪除區段整組換成 `t`。 */
+  function applyTrim(t: TrimSpec) {
+    if (!ready) return;
+    head.setOptions({ start: 0, end: Math.max(t.start, EDGE_MIN) });
+    tail.setOptions({ start: Math.min(t.end, duration - tailMin), end: duration });
+    for (const r of [...cuts.values()]) removeCut(r);
+    for (const c of t.cuts) addCut(c);
+    renderCutList();
+  }
+
+  // ---- SponsorBlock 提示：「改用整首」與「復原」可以來回切換 ----
+  const notice = h('p', { class: 'notice' });
+  /** 按「改用整首」之前的裁剪；null 代表目前不是「已改用整首」的狀態。 */
+  let beforeWhole: TrimSpec | null = null;
+
+  function renderNotice() {
+    notice.replaceChildren(
+      ...(beforeWhole
+        ? ['已改用整首。', h('button', { class: 'link', onclick: undoWholeTrack }, '復原')]
+        : [
+            '已依照 SponsorBlock 社群資料，自動標出 MV 裡不是音樂的部分，請試聽確認。',
+            h('button', { class: 'link', onclick: useWholeTrack }, '不要的話改用整首'),
+          ]),
+    );
+  }
+
   function useWholeTrack() {
     if (!ready) return;
-    head.setOptions({ start: 0, end: EDGE_MIN });
-    tail.setOptions({ start: duration - EDGE_MIN, end: duration });
-    for (const r of [...cuts.values()]) removeCut(r);
-    renderCutList();
+    beforeWhole = currentTrim();
+    applyTrim({ start: 0, end: duration, cuts: [] });
+    renderNotice();
+  }
+
+  function undoWholeTrack() {
+    if (!ready || !beforeWhole) return;
+    applyTrim(beforeWhole);
+    beforeWhole = null;
+    renderNotice();
   }
 
   ws.once('ready', () => {
@@ -167,24 +256,25 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       resizeStart: false,
       minLength: EDGE_MIN,
     });
+    tailMin = tailMinSeconds(ws.getDuration(), ws.getWrapper().clientWidth);
     tail = regions.addRegion({
       id: 'tail',
-      start: Math.min(suggested.end, duration - EDGE_MIN),
+      start: Math.min(suggested.end, duration - tailMin),
       end: duration,
       color: COLOR_EDGE,
       drag: false,
       resizeEnd: false,
-      minLength: EDGE_MIN,
+      minLength: tailMin,
     });
+    styleEdgeHandle(head, 'right', '拖拉調整起點');
+    styleEdgeHandle(tail, 'left', '拖拉調整終點');
     ready = true;
-    for (const c of suggested.cuts) {
-      registerCut(regions.addRegion({ start: c.start, end: c.end, color: COLOR_CUT }));
-    }
+    for (const c of suggested.cuts) addCut(c);
 
     regions.enableDragSelection({ color: COLOR_CUT });
     // 拖拉的區段在放開滑鼠時才觸發 region-created（已對照原始碼確認），這時長度已是最終值
     regions.on('region-created', (r) => {
-      if (r === head || r === tail || cuts.has(r.id)) return;
+      if (addingCut || r === head || r === tail || cuts.has(r.id)) return;
       if (r.end - r.start < MIN_CUT) {
         r.remove();
         return;
@@ -193,6 +283,16 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     });
     regions.on('region-update', () => refresh());
     regions.on('region-updated', (r) => {
+      // 拉桿拖過邊緣時 wavesurfer 會停在差一點的位置；用指標實際移動的距離判斷，拖過了就直接設成「不裁」
+      if (pointerDown && (r === head || r === tail)) {
+        const movedSec = ((lastPointerX - pointerDown.x) * ws.getDuration()) / Math.max(1, ws.getWrapper().clientWidth);
+        if (r === head && draggedPastEdge('head', pointerDown.headEnd, movedSec, duration)) {
+          head.setOptions({ start: 0, end: EDGE_MIN });
+        }
+        if (r === tail && draggedPastEdge('tail', pointerDown.tailStart, movedSec, duration, tailMin)) {
+          tail.setOptions({ start: duration - tailMin, end: duration });
+        }
+      }
       if (r === head && head.end > tail.start - MIN_GAP) head.setOptions({ start: 0, end: tail.start - MIN_GAP });
       if (r === tail && tail.start < head.end + MIN_GAP) tail.setOptions({ start: head.end + MIN_GAP, end: duration });
       renderCutList();
@@ -250,6 +350,20 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   };
   document.addEventListener('keydown', onKey);
 
+  // 記下按下滑鼠時的指標與頭尾位置，以及拖拉中指標最後的位置（給上面的 region-updated 判斷有沒有拖過邊緣）。
+  // 用 capture 階段，wavesurfer 在 shadow DOM 裡處理拖拉也一樣收得到。
+  let pointerDown: { x: number; headEnd: number; tailStart: number } | null = null;
+  let lastPointerX = 0;
+  const onPointerDown = (e: PointerEvent) => {
+    lastPointerX = e.clientX;
+    pointerDown = ready ? { x: e.clientX, headEnd: head.end, tailStart: tail.start } : null;
+  };
+  const onPointerMove = (e: PointerEvent) => {
+    lastPointerX = e.clientX;
+  };
+  document.addEventListener('pointerdown', onPointerDown, true);
+  document.addEventListener('pointermove', onPointerMove, true);
+
   // ---- 選項、歌曲資訊、匯出 ----
   const fadeIn = h('input', { type: 'checkbox' });
   const fadeOut = h('input', { type: 'checkbox' });
@@ -290,14 +404,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     'section',
     { class: 'view editor' },
     videoHeader(p.video, p.coverUrl),
-    hasSuggestion
-      ? h(
-          'p',
-          { class: 'notice' },
-          '已依照 SponsorBlock 社群資料，自動標出 MV 裡不是音樂的部分，請試聽確認。',
-          h('button', { class: 'link', onclick: useWholeTrack }, '不要的話改用整首'),
-        )
-      : null,
+    hasSuggestion ? notice : null,
     waveEl,
     h(
       'p',
@@ -344,12 +451,15 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     h('div', { class: 'actions' }, cancelBtn, exportBtn),
   );
 
+  renderNotice();
   renderCutList();
 
   return {
     el,
     destroy() {
       document.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('pointermove', onPointerMove, true);
       ws.destroy();
     },
   };
