@@ -50,10 +50,16 @@ body {
   background-attachment: fixed;
 }
 
-.nameplate,
-#app { width: 100%; max-width: 880px; margin: 0 auto; padding-left: 26px; padding-right: 26px; }
-.nameplate { padding-top: 14px; font-size: 22px; font-weight: 700; line-height: 1.3; }
-#app { flex: 1; display: flex; flex-direction: column; padding-top: 14px; padding-bottom: 16px; }
+/* 產品名已經在視窗標題列上，機身上不再放名牌 */
+#app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 20px 26px 16px;
+}
 
 
 /* ---- 實體按鍵：底下的陰影是按鍵的厚度，按下去會往下沉 ---- */
@@ -82,7 +88,6 @@ button .key-hint { font-weight: 400; font-size: 13px; color: var(--ink-on-key); 
 /* 文字連結：不是按鍵，沒有厚度 */
 button.link,
 button.link:active { min-height: 0; padding: 0 4px; background: none; border: none; box-shadow: none; transform: none; font-weight: 400; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
-button.link.danger { color: var(--cut); }
 
 /* ---- 凹槽輸入框 ---- */
 input[type="text"] {
@@ -220,13 +225,19 @@ footer { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: spac
 /* 寬度不夠換行時，終點那組仍然靠右，對齊螢幕窗裡右邊的終點 */
 .nudge-bar > :last-child { margin-left: auto; }
 
-.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; padding-top: 12px; border-top: 1px solid var(--rule); }
+.controls { display: grid; grid-template-columns: 1.2fr 1fr; gap: 0 28px; padding-top: 12px; border-top: 1px solid var(--rule); }
 .controls h3 { margin: 0 0 8px; font-size: 15px; font-weight: 700; color: var(--ink-muted); }
-.nudges { display: flex; flex-wrap: wrap; gap: 8px; }
-.cut-list { list-style: none; margin: 0 -8px; padding: 0; }
-.cut-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; padding: 4px 8px; border-radius: 6px; }
-.cut-list li.selected { background: rgba(255, 123, 123, 0.14); }
-.cut-list li.empty { color: var(--ink-muted); }
+.nudges { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.nudge-label { margin-right: 2px; font-size: 15px; font-weight: 700; color: var(--ink-muted); }
+/* 兩組微調鍵要擠進同一列，按鍵左右內距收窄一點 */
+.nudge-bar button.nudge { padding-left: 7px; padding-right: 7px; }
+
+/* 刪除區段：每一筆是一條，左邊的紅色色條對應波形上的紅色 */
+.cut-list { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.cut-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 5px 8px 5px 12px; border: 1px solid var(--key-edge); border-left: 4px solid var(--cut); border-radius: 5px; background: var(--well); }
+.cut-list li.selected { border-color: var(--cut); background: rgba(255, 123, 123, 0.14); }
+.cut-list li.empty { padding: 0; border: none; background: none; color: var(--ink-muted); }
+.cut-actions { display: flex; gap: 8px; margin-left: auto; }
 /* 列表在機身上不在螢幕窗裡，用一般字型（點陣字在小字級不好讀），數字等寬對齊 */
 .cut-time { font-variant-numeric: tabular-nums; }
 

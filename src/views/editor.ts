@@ -73,6 +73,8 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     peaks: [p.prepared.peaks],
     duration,
     height: 120,
+    // 波形最高只畫到 85% 高度：音量很大的歌會整段頂到最大，貼著上下邊緣看起來像被切掉
+    barHeight: 0.85,
     normalize: true,
     waveColor: '#5FD9BA',
     progressColor: '#B8FFEC',
@@ -152,12 +154,13 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   const nudgeRow = (label: string, set: (v: number) => void, get: () => number) =>
     h(
       'div',
-      { class: 'nudges', role: 'group', 'aria-label': label },
+      { class: 'nudges', role: 'group', 'aria-label': `微調${label}` },
+      h('span', { class: 'nudge-label' }, label),
       nudge('−1 秒', () => set(get() - 1)),
       nudge('−0.1', () => set(get() - 0.1)),
       nudge('+0.1', () => set(get() + 0.1)),
       nudge('+1 秒', () => set(get() + 1)),
-      nudge('設為目前位置', () => set(ws.getCurrentTime())),
+      nudge('設為目前播放位置', () => set(ws.getCurrentTime())),
     );
 
   // ---- 刪除區段 ----
@@ -170,8 +173,13 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
         'li',
         { class: r === selected ? 'selected' : '' },
         h('span', {}, `刪除區段 ${i + 1}：`, h('span', { class: 'cut-time' }, `${formatTime(r.start)} – ${formatTime(r.end)}`)),
-        h('button', { class: 'link', onclick: () => playRaw(Math.max(0, r.start - 2)) }, '聽聽看'),
-        h('button', { class: 'link danger', onclick: () => removeCut(r) }, '取消刪除'),
+        // 「取消刪除」是把這段留下來，不是危險的動作，所以和「聽聽看」一樣用一般的小按鍵
+        h(
+          'span',
+          { class: 'cut-actions' },
+          h('button', { class: 'nudge', onclick: () => playRaw(Math.max(0, r.start - 2)) }, '聽聽看'),
+          h('button', { class: 'nudge', onclick: () => removeCut(r) }, '取消刪除'),
+        ),
       ),
     );
     cutList.replaceChildren(
@@ -431,8 +439,8 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     h(
       'div',
       { class: 'nudge-bar' },
-      nudgeRow('微調起點', setStart, () => currentTrim().start),
-      nudgeRow('微調終點', setEnd, () => currentTrim().end),
+      nudgeRow('起點', setStart, () => currentTrim().start),
+      nudgeRow('終點', setEnd, () => currentTrim().end),
     ),
     h(
       'p',
