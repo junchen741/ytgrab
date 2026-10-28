@@ -72,7 +72,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     url: p.audioUrl,
     peaks: [p.prepared.peaks],
     duration,
-    height: 140,
+    height: 120,
     normalize: true,
     waveColor: '#5FD9BA',
     progressColor: '#B8FFEC',
@@ -143,17 +143,17 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     else setEnd(v);
   });
 
-  // 起點／終點的輸入框在螢幕窗裡（見下方 el），機身上只放微調鍵
+  // 起點／終點的輸入框在螢幕窗裡（見下方 el）；微調鍵分成兩組放在螢幕窗正下方，分別對齊起點和終點
   const nudge = (label: string, fn: () => void) => h('button', { class: 'nudge', onclick: fn }, label);
-  const nudgeRow = (set: (v: number) => void, get: () => number) =>
+  const nudgeRow = (label: string, set: (v: number) => void, get: () => number) =>
     h(
       'div',
-      { class: 'nudges' },
+      { class: 'nudges', role: 'group', 'aria-label': label },
       nudge('−1 秒', () => set(get() - 1)),
       nudge('−0.1', () => set(get() - 0.1)),
       nudge('+0.1', () => set(get() + 0.1)),
       nudge('+1 秒', () => set(get() + 1)),
-      nudge('設為目前播放位置', () => set(ws.getCurrentTime())),
+      nudge('設為目前位置', () => set(ws.getCurrentTime())),
     );
 
   // ---- 刪除區段 ----
@@ -419,6 +419,12 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       ),
     ),
     h(
+      'div',
+      { class: 'nudge-bar' },
+      nudgeRow('微調起點', setStart, () => currentTrim().start),
+      nudgeRow('微調終點', setEnd, () => currentTrim().end),
+    ),
+    h(
       'p',
       { class: 'legend' },
       h('span', {}, h('span', { class: 'swatch edge' }), '暗掉的＝頭尾不要，拖拉兩邊的拉桿調整'),
@@ -432,27 +438,22 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       h('button', { onclick: () => previewFrom(currentTrim().start) }, '▶ 試聽成品'),
       h('button', { onclick: () => previewFrom(endPreviewStart(currentTrim())) }, '▶ 聽結尾'),
       h('button', { onclick: togglePlain }, '⏯ 播放／暫停', h('span', { class: 'key-hint' }, '空白鍵')),
+      h(
+        'div',
+        { class: 'fades', role: 'group', 'aria-label': '淡入淡出（2 秒）' },
+        h('span', { class: 'fades-label' }, '淡入淡出（2 秒）'),
+        h('label', { class: 'switch-row' }, fadeIn, '開頭'),
+        h('label', { class: 'switch-row' }, fadeOut, '結尾'),
+      ),
     ),
-    // 機身下半部：左欄調整時間與刪除區段，右欄是選項和歌曲資訊
+    // 機身下半部：左欄是刪除區段（每一列自己寫著「刪除區段 N」，不另外放標題），右欄是歌曲資訊
     h(
       'div',
       { class: 'controls' },
+      h('div', {}, cutList),
       h(
         'div',
         {},
-        h('h3', {}, '起點'),
-        nudgeRow(setStart, () => currentTrim().start),
-        h('h3', {}, '終點'),
-        nudgeRow(setEnd, () => currentTrim().end),
-        h('h3', {}, '刪除區段'),
-        cutList,
-      ),
-      h(
-        'div',
-        {},
-        h('h3', {}, '淡入淡出'),
-        h('label', { class: 'switch-row' }, fadeIn, '開頭淡入（2 秒）'),
-        h('label', { class: 'switch-row' }, fadeOut, '結尾淡出（2 秒）'),
         h('h3', {}, '歌曲資訊（會顯示在手機的音樂播放器）'),
         h('div', { class: 'tags' }, h('label', {}, '歌名'), titleInput, h('label', {}, '演出者'), artistInput),
       ),
