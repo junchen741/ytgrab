@@ -1,12 +1,21 @@
 import type { VideoInfo } from '../api/types';
 import { litSegments } from '../lib/meter';
-import { h } from '../ui/dom';
-import { videoHeader } from '../ui/videoHeader';
+import { h } from './dom';
+import { videoHeader } from './videoHeader';
 
 /** 螢幕窗裡的段式進度條有幾格。 */
 const SEGMENTS = 20;
 
-export function progressView(initialText: string) {
+/** 顯示進度的螢幕窗（首頁按下「開始」後，原本的「準備好了」會換成這個）。 */
+export interface ProgressDisplay {
+  el: HTMLElement;
+  setText(t: string): void;
+  /** null = 不確定進度（亮格來回掃動） */
+  setPercent(p: number | null): void;
+  setVideo(v: VideoInfo): void;
+}
+
+export function progressDisplay(initialText: string): ProgressDisplay {
   const header = h('div');
   const text = h('p', { class: 'status' }, initialText);
   // --i 給 CSS 的掃動動畫算每一格亮起的時間
@@ -19,14 +28,13 @@ export function progressView(initialText: string) {
     h('span', { class: 'meter-cells' }, ...segments),
     value,
   );
-  const el = h('section', { class: 'view progress' }, h('div', { class: 'display' }, header, text, meter));
+  const el = h('div', { class: 'display' }, header, text, meter);
   return {
     el,
-    setText(t: string) {
+    setText(t) {
       text.textContent = t;
     },
-    /** null = 不確定進度（亮格來回掃動） */
-    setPercent(p: number | null) {
+    setPercent(p) {
       if (p === null) {
         meter.removeAttribute('aria-valuenow');
         meter.classList.add('indeterminate');
@@ -40,7 +48,7 @@ export function progressView(initialText: string) {
       segments.forEach((s, i) => s.classList.toggle('on', i < lit));
       value.textContent = `${Math.round(p)}%`;
     },
-    setVideo(v: VideoInfo) {
+    setVideo(v) {
       header.replaceChildren(videoHeader(v));
     },
   };

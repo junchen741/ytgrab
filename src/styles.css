@@ -102,6 +102,7 @@ input[type="text"] {
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
 }
 input::placeholder { color: var(--ink-muted); opacity: 1; }
+input[type="text"]:disabled { opacity: 0.55; }
 
 :focus-visible { outline: 3px solid var(--amber); outline-offset: 3px; }
 
@@ -129,7 +130,8 @@ input::placeholder { color: var(--ink-muted); opacity: 1; }
 .view.home { flex: 1; display: flex; flex-direction: column; gap: 16px; }
 .url-row { display: flex; gap: 12px; align-items: center; }
 .url-input { flex: 1; min-width: 0; font-size: 18px; padding: 11px 14px; }
-.home .hint { margin: -4px 0 0; min-height: 1.6em; }
+.home .hint { margin: -6px 0 0; }
+.home .hint:empty { display: none; }
 /* 存檔位置：和標籤排同一行，框和按鍵都比網址列小，不要搶走網址列的注意力 */
 .folder { display: flex; align-items: center; gap: 10px; font-size: 15px; }
 .folder-label { flex: none; color: var(--ink-muted); }

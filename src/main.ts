@@ -5,8 +5,7 @@ import { mount } from './ui/dom';
 import { doneView } from './views/done';
 import { editorView } from './views/editor';
 import { errorView } from './views/error';
-import { homeView } from './views/home';
-import { progressView } from './views/progress';
+import { homeView, type HomeView } from './views/home';
 
 const UPDATING_TEXT = '正在更新下載元件（第一次開啟或 YouTube 改版後需要），最多約一分鐘…';
 
@@ -16,6 +15,8 @@ let leaveCurrentView: (() => void) | undefined;
 let ytdlpUpdating = false;
 /** 上一次處理的網址；回到首頁時不要再把同一個網址從剪貼簿帶進來。 */
 let lastUrl = '';
+/** 目前的首頁；讀取影片資訊和下載都在首頁進行（見 HomeView.startWork）。 */
+let home: HomeView;
 
 function show(view: HTMLElement, onLeave?: () => void) {
   leaveCurrentView?.();
@@ -29,23 +30,22 @@ function toAppError(e: unknown): AppError {
 }
 
 function goHome(prefill = '') {
-  show(
-    homeView({
-      outputDir: appInfo.outputDir,
-      version: appInfo.version,
-      prefill,
-      suggestUrl: prefill
-        ? undefined
-        : api
-            .clipboardUrl()
-            .then((u) => (u && u !== lastUrl ? u : null))
-            .catch(() => null),
-      onSubmit: (url) => void startFlow(url),
-      onChangeFolder: () => void changeFolder(),
-      onOpenLogs: () => void api.openLogs(),
-      onOpenNotices: () => void api.openNotices(),
-    }),
-  );
+  home = homeView({
+    outputDir: appInfo.outputDir,
+    version: appInfo.version,
+    prefill,
+    suggestUrl: prefill
+      ? undefined
+      : api
+          .clipboardUrl()
+          .then((u) => (u && u !== lastUrl ? u : null))
+          .catch(() => null),
+    onSubmit: (url) => void startFlow(url),
+    onChangeFolder: () => void changeFolder(),
+    onOpenLogs: () => void api.openLogs(),
+    onOpenNotices: () => void api.openNotices(),
+  });
+  show(home.el);
 }
 
 async function changeFolder() {
@@ -64,8 +64,7 @@ function showError(e: unknown, url: string, stage: Stage) {
 async function startFlow(url: string) {
   lastUrl = url;
   // 開程式時的 yt-dlp 更新還沒結束的話，解析會先等它；先說清楚，免得家人以為當掉了
-  const progress = progressView(ytdlpUpdating ? UPDATING_TEXT : '正在讀取影片資訊…');
-  show(progress.el);
+  const progress = home.startWork(ytdlpUpdating ? UPDATING_TEXT : '正在讀取影片資訊…');
 
   let video: VideoInfo;
   try {

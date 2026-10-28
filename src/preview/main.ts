@@ -6,7 +6,6 @@ import { doneView } from '../views/done';
 import { editorView } from '../views/editor';
 import { errorView } from '../views/error';
 import { homeView } from '../views/home';
-import { progressView } from '../views/progress';
 import {
   fixtureCoverUrl,
   fixtureError,
@@ -26,20 +25,35 @@ const log =
   (...args: unknown[]) =>
     console.log(`[preview] ${name}`, ...args);
 
+const home = (url: string | null) =>
+  homeView({
+    outputDir: fixtureOutputDir(long),
+    version: '0.1.0',
+    prefill: '',
+    suggestUrl: Promise.resolve(url),
+    onSubmit: log('onSubmit'),
+    onChangeFolder: log('onChangeFolder'),
+    onOpenLogs: log('onOpenLogs'),
+    onOpenNotices: log('onOpenNotices'),
+  });
+
 function render(): Node {
   switch (view) {
+    // 讀取與下載都在首頁進行：先畫首頁，再像 main.ts 一樣呼叫 startWork
     case 'progress': {
-      const p = progressView('正在讀取影片資訊…');
+      const h = home(null);
+      const p = h.startWork('正在讀取影片資訊…');
       p.setVideo(fixtureVideo(long));
       p.setText('正在下載音訊…');
       p.setPercent(42);
-      return p.el;
+      return h.el;
     }
     case 'progress-wait': {
+      const h = home(null);
       // 和 main.ts 的 UPDATING_TEXT 同一段話
-      const p = progressView('正在更新下載元件（第一次開啟或 YouTube 改版後需要），最多約一分鐘…');
+      const p = h.startWork('正在更新下載元件（第一次開啟或 YouTube 改版後需要），最多約一分鐘…');
       p.setPercent(null);
-      return p.el;
+      return h.el;
     }
     case 'editor': {
       const prepared = fixturePrepared(long);
@@ -59,16 +73,7 @@ function render(): Node {
     case 'error':
       return errorView({ error: fixtureError(long), onCopyReport: async () => log('onCopyReport')(), onBack: log('onBack') });
     default:
-      return homeView({
-        outputDir: fixtureOutputDir(long),
-        version: '0.1.0',
-        prefill: '',
-        suggestUrl: Promise.resolve(long ? 'https://www.youtube.com/watch?v=preview0001' : null),
-        onSubmit: log('onSubmit'),
-        onChangeFolder: log('onChangeFolder'),
-        onOpenLogs: log('onOpenLogs'),
-        onOpenNotices: log('onOpenNotices'),
-      });
+      return home(long ? 'https://www.youtube.com/watch?v=preview0001' : null).el;
   }
 }
 
