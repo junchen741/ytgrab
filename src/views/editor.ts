@@ -3,7 +3,7 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.esm.js';
 import type { AppError, ExportRequest, PreparedAudio, Range, TrimSpec, VideoInfo } from '../api/types';
 import { endPreviewStart, nextPlaybackAction } from '../lib/playback';
 import { formatTime, parseTime } from '../lib/time';
-import { approxLength, draggedPastEdge, EDGE_MIN, MIN_GAP, tailMinSeconds, trimFromRegions } from '../lib/trim';
+import { approxLength, draggedPastEdge, EDGE_MIN, exactEndFor, MIN_GAP, tailMinSeconds, trimFromRegions } from '../lib/trim';
 import { h } from '../ui/dom';
 import { videoHeader } from '../ui/videoHeader';
 
@@ -87,6 +87,8 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   let ready = false;
   /** 終點灰色區段的最小寬度（秒），ready 時依波形寬度算出來，見 tailMinSeconds。 */
   let tailMin = EDGE_MIN;
+  /** 終點落在結尾前 tailMin 秒以內時的精確終點（終點區段畫不了那麼窄），見 exactEndFor。拖動終點拉桿時清掉。 */
+  let exactEnd: number | null = null;
   const cuts = new Map<string, Region>();
   let selected: Region | null = null;
 
@@ -98,6 +100,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
           duration,
           [...cuts.values()].map((r) => ({ start: r.start, end: r.end })),
           tailMin,
+          exactEnd,
         )
       : { start: suggested.start, end: suggested.end, cuts: suggested.cuts.map((c) => ({ ...c })) };
 
@@ -128,6 +131,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   function setEnd(v: number) {
     if (!ready) return;
     const clamped = Math.max(Math.min(v, duration), head.end + MIN_GAP);
+    exactEnd = exactEndFor(clamped, duration, tailMin);
     tail.setOptions({ start: Math.min(clamped, duration - tailMin), end: duration });
     refresh();
   }
@@ -213,6 +217,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   function applyTrim(t: TrimSpec) {
     if (!ready) return;
     head.setOptions({ start: 0, end: Math.max(t.start, EDGE_MIN) });
+    exactEnd = exactEndFor(t.end, duration, tailMin);
     tail.setOptions({ start: Math.min(t.end, duration - tailMin), end: duration });
     for (const r of [...cuts.values()]) removeCut(r);
     for (const c of t.cuts) addCut(c);
@@ -260,6 +265,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       minLength: EDGE_MIN,
     });
     tailMin = tailMinSeconds(ws.getDuration(), ws.getWrapper().clientWidth);
+    exactEnd = exactEndFor(suggested.end, duration, tailMin);
     tail = regions.addRegion({
       id: 'tail',
       start: Math.min(suggested.end, duration - tailMin),
@@ -284,7 +290,11 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       }
       registerCut(r);
     });
-    regions.on('region-update', () => refresh());
+    regions.on('region-update', (r) => {
+      // 使用者拖了終點拉桿：終點改由拉桿位置決定
+      if (r === tail) exactEnd = null;
+      refresh();
+    });
     regions.on('region-updated', (r) => {
       // 拉桿拖過邊緣時 wavesurfer 會停在差一點的位置；用指標實際移動的距離判斷，拖過了就直接設成「不裁」
       if (pointerDown && (r === head || r === tail)) {

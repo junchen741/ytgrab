@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { approxLength, draggedPastEdge, EDGE_MIN, tailMinSeconds, trimFromRegions } from './trim';
+import { approxLength, draggedPastEdge, EDGE_MIN, exactEndFor, tailMinSeconds, trimFromRegions } from './trim';
 
 describe('trimFromRegions', () => {
   it('極窄的頭尾區段代表「不裁」', () => {
@@ -9,12 +9,33 @@ describe('trimFromRegions', () => {
     expect(trimFromRegions(0.05, 99.7, 100, [], 0.5)).toEqual({ start: 0, end: 100, cuts: [] });
     expect(trimFromRegions(0.05, 99.4, 100, [], 0.5).end).toBe(99.4);
   });
+  it('終點區段停在最小寬度的位置時，改用記住的精確終點', () => {
+    // 281.8 秒的歌、tailMin 0.72：終點區段畫不出比 281.08 更靠右的位置
+    expect(trimFromRegions(0.05, 281.08, 281.8, [], 0.72, 281.7).end).toBe(281.7);
+  });
+  it('終點拉桿已經拖離結尾時，不用精確終點', () => {
+    expect(trimFromRegions(0.05, 270, 281.8, [], 0.72, 281.7).end).toBe(270);
+  });
+  it('沒有精確終點時，終點區段停在最小寬度的位置就是整首結尾', () => {
+    expect(trimFromRegions(0.05, 281.08, 281.8, [], 0.72, null).end).toBe(281.8);
+  });
   it('刪除區段會排序並修正顛倒的起訖', () => {
     const got = trimFromRegions(12.5, 80, 100, [
       { start: 50, end: 40 },
       { start: 20, end: 30 },
     ]);
     expect(got).toEqual({ start: 12.5, end: 80, cuts: [{ start: 20, end: 30 }, { start: 40, end: 50 }] });
+  });
+});
+
+describe('exactEndFor', () => {
+  it('終點落在結尾前 tailMin 秒以內（含邊界）時要另外記住', () => {
+    expect(exactEndFor(281.7, 281.8, 0.72)).toBe(281.7);
+    expect(exactEndFor(281.08, 281.8, 0.72)).toBe(281.08);
+  });
+  it('整首結尾或更前面的終點不用另外記', () => {
+    expect(exactEndFor(281.8, 281.8, 0.72)).toBeNull();
+    expect(exactEndFor(280, 281.8, 0.72)).toBeNull();
   });
 });
 

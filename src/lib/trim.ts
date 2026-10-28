@@ -31,17 +31,29 @@ export function draggedPastEdge(
   return side === 'head' ? intended <= EDGE_MIN : intended >= duration - tailMin;
 }
 
-/** `tailMin`：終點區段在這個秒數內都算「不裁」，見 tailMinSeconds。 */
+/**
+ * 終點區段畫不出比 `duration - tailMin` 更靠右的位置（見 tailMinSeconds），所以終點落在結尾前 tailMin 秒以內時，
+ * 要另外記住精確值，否則例如在結尾按「−0.1」會被拉回整首結尾。回傳要記住的終點；不用記就回傳 null。
+ */
+export function exactEndFor(end: number, duration: number, tailMin: number): number | null {
+  return end >= duration - tailMin && end < duration ? end : null;
+}
+
+/**
+ * `tailMin`：終點區段在這個秒數內都算「不裁」，見 tailMinSeconds。
+ * `exactEnd`：見 exactEndFor；終點區段還停在最小寬度的位置時用它，拉桿被拖離結尾後就不用。
+ */
 export function trimFromRegions(
   headEnd: number,
   tailStart: number,
   duration: number,
   cuts: Range[],
   tailMin = EDGE_MIN,
+  exactEnd: number | null = null,
 ): TrimSpec {
   return {
     start: headEnd <= EDGE_MIN ? 0 : headEnd,
-    end: tailStart >= duration - tailMin ? duration : tailStart,
+    end: tailStart >= duration - tailMin ? (exactEnd ?? duration) : tailStart,
     cuts: cuts
       .map((c) => ({ start: Math.min(c.start, c.end), end: Math.max(c.start, c.end) }))
       .sort((a, b) => a.start - b.start),
