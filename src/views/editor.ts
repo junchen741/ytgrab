@@ -9,14 +9,16 @@ import { videoHeader } from '../ui/videoHeader';
 
 type Region = ReturnType<RegionsPlugin['addRegion']>;
 
-const COLOR_EDGE = 'rgba(100, 116, 139, 0.45)';
-const COLOR_CUT = 'rgba(220, 38, 38, 0.30)';
-const COLOR_CUT_SELECTED = 'rgba(220, 38, 38, 0.60)';
+// 波形畫在螢幕窗（深色玻璃）上：頭尾不要的部分蓋一層半透明玻璃色，看起來像沒亮；刪除段蓋半透明紅色。
+const COLOR_EDGE = 'rgba(13, 27, 26, 0.72)';
+// 紅色蓋在青綠色的波形上容易混成灰色，所以不透明度偏高，styles.css 另外替刪除段加紅色邊框
+const COLOR_CUT = 'rgba(255, 123, 123, 0.45)';
+const COLOR_CUT_SELECTED = 'rgba(255, 123, 123, 0.7)';
 /** 拖拉出來比這更短的紅色區段視為誤觸，自動刪掉（秒）。 */
 const MIN_CUT = 0.5;
 /** 頭尾灰色區段的拉桿寬度（像素）與顏色。 */
 const EDGE_HANDLE_PX = 14;
-const COLOR_EDGE_HANDLE = 'rgba(71, 85, 105, 0.9)';
+const COLOR_EDGE_HANDLE = '#B7C7C3';
 
 /**
  * 頭尾灰色區段的拉桿外觀（`side` 是灰色區段朝向波形內部的那一側）。
@@ -71,9 +73,9 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     duration,
     height: 140,
     normalize: true,
-    waveColor: '#94a3b8',
-    progressColor: '#0f766e',
-    cursorColor: '#f59e0b',
+    waveColor: '#5FD9BA',
+    progressColor: '#B8FFEC',
+    cursorColor: '#F0A531',
     cursorWidth: 2,
     plugins: [regions],
   });
@@ -101,13 +103,14 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   // ---- 起點／終點 ----
   const startInput = h('input', { type: 'text', class: 'time' });
   const endInput = h('input', { type: 'text', class: 'time' });
-  const lengthLabel = h('span', { class: 'hint' });
+  const lengthValue = h('span', { class: 'dig' });
+  const lengthLabel = h('span', { class: 'length' }, '成品長度約 ', lengthValue);
 
   function refresh() {
     const t = currentTrim();
     startInput.value = formatTime(t.start);
     endInput.value = formatTime(t.end);
-    lengthLabel.textContent = `成品長度約 ${formatTime(approxLength(t))}`;
+    lengthValue.textContent = formatTime(approxLength(t));
     if (ready) {
       placeEdgeHandle(head, 'right', t.start > 0);
       placeEdgeHandle(tail, 'left', t.end < duration);
@@ -139,13 +142,12 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     else setEnd(v);
   });
 
+  // 起點／終點的輸入框在螢幕窗裡（見下方 el），機身上只放微調鍵
   const nudge = (label: string, fn: () => void) => h('button', { class: 'nudge', onclick: fn }, label);
-  const timeRow = (label: string, input: HTMLInputElement, set: (v: number) => void, get: () => number) =>
+  const nudgeRow = (set: (v: number) => void, get: () => number) =>
     h(
       'div',
-      { class: 'time-row' },
-      h('label', {}, label),
-      input,
+      { class: 'nudges' },
       nudge('−1 秒', () => set(get() - 1)),
       nudge('−0.1', () => set(get() - 0.1)),
       nudge('+0.1', () => set(get() + 0.1)),
@@ -162,7 +164,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       h(
         'li',
         { class: r === selected ? 'selected' : '' },
-        h('span', {}, `刪除區段 ${i + 1}：${formatTime(r.start)} – ${formatTime(r.end)}`),
+        h('span', {}, `刪除區段 ${i + 1}：`, h('span', { class: 'cut-time' }, `${formatTime(r.start)} – ${formatTime(r.end)}`)),
         h('button', { class: 'link', onclick: () => playRaw(Math.max(0, r.start - 2)) }, '聽聽看'),
         h('button', { class: 'link danger', onclick: () => removeCut(r) }, '取消刪除'),
       ),
@@ -365,18 +367,18 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   document.addEventListener('pointermove', onPointerMove, true);
 
   // ---- 選項、歌曲資訊、匯出 ----
-  const fadeIn = h('input', { type: 'checkbox' });
-  const fadeOut = h('input', { type: 'checkbox' });
+  const fadeIn = h('input', { type: 'checkbox', class: 'switch' });
+  const fadeOut = h('input', { type: 'checkbox', class: 'switch' });
   const titleInput = h('input', { type: 'text', value: p.video.tags.title });
   const artistInput = h('input', { type: 'text', value: p.video.tags.artist });
   const message = h('p', { class: 'error-text' });
-  const exportBtn = h('button', { class: 'primary big' }, '匯出 MP3');
+  const exportBtn = h('button', { class: 'primary big' }, '存成 MP3');
   const cancelBtn = h('button', { class: 'big', onclick: () => p.onCancel() }, '取消');
 
   function setBusy(busy: boolean) {
     exportBtn.disabled = busy;
     cancelBtn.disabled = busy;
-    exportBtn.textContent = busy ? '匯出中…' : '匯出 MP3';
+    exportBtn.textContent = busy ? '存檔中…' : '存成 MP3';
   }
 
   exportBtn.addEventListener('click', async () => {
@@ -398,54 +400,60 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   });
 
   const hasSuggestion = suggested.start > 0 || suggested.end < duration || suggested.cuts.length > 0;
-  const swatch = (color: string) => h('span', { class: 'swatch', style: `background:${color}` });
-
   const el = h(
     'section',
     { class: 'view editor' },
-    videoHeader(p.video, p.coverUrl),
-    hasSuggestion ? notice : null,
-    waveEl,
-    h(
-      'p',
-      { class: 'legend' },
-      swatch(COLOR_EDGE),
-      '灰色＝頭尾不要的部分（拖拉邊緣調整）',
-      swatch(COLOR_CUT),
-      '紅色＝中間要刪掉的部分（在波形上按住拖拉新增）',
-    ),
+    // 螢幕窗：影片資訊、波形、起點／成品長度／終點
     h(
       'div',
-      { class: 'row' },
-      h('button', { class: 'primary', onclick: () => previewFrom(currentTrim().start) }, '▶ 試聽成品'),
-      h('button', { onclick: () => previewFrom(endPreviewStart(currentTrim())) }, '▶ 聽結尾'),
-      h('button', { onclick: togglePlain }, '⏯ 播放／暫停（空白鍵）'),
-      lengthLabel,
-    ),
-    h(
-      'div',
-      { class: 'panel' },
-      h('h3', {}, '起點與終點'),
-      timeRow('起點', startInput, setStart, () => currentTrim().start),
-      timeRow('終點', endInput, setEnd, () => currentTrim().end),
-    ),
-    h('div', { class: 'panel' }, h('h3', {}, '刪除區段'), cutList),
-    h(
-      'div',
-      { class: 'panel' },
-      h('h3', {}, '淡入淡出'),
+      { class: 'display' },
+      videoHeader(p.video, p.coverUrl),
+      waveEl,
       h(
         'div',
-        { class: 'row' },
-        h('label', {}, fadeIn, ' 開頭淡入（2 秒）'),
-        h('label', {}, fadeOut, ' 結尾淡出（2 秒）'),
+        { class: 'readout' },
+        h('label', {}, '起點 ', startInput),
+        lengthLabel,
+        h('label', {}, '終點 ', endInput),
       ),
     ),
     h(
+      'p',
+      { class: 'legend' },
+      h('span', {}, h('span', { class: 'swatch edge' }), '暗掉的＝頭尾不要，拖拉兩邊的拉桿調整'),
+      h('span', {}, h('span', { class: 'swatch cut' }), '紅色＝中間刪掉，在波形上按住拖拉新增'),
+    ),
+    hasSuggestion ? notice : null,
+    h(
       'div',
-      { class: 'panel' },
-      h('h3', {}, '歌曲資訊（會顯示在手機的音樂播放器）'),
-      h('div', { class: 'tags' }, h('label', {}, '歌名'), titleInput, h('label', {}, '演出者'), artistInput),
+      { class: 'transport' },
+      h('button', { class: 'primary', onclick: () => previewFrom(currentTrim().start) }, '▶ 試聽成品'),
+      h('button', { onclick: () => previewFrom(endPreviewStart(currentTrim())) }, '▶ 聽結尾'),
+      h('button', { onclick: togglePlain }, '⏯ 播放／暫停', h('span', { class: 'key-hint' }, '空白鍵')),
+    ),
+    // 機身下半部：左欄調整時間與刪除區段，右欄是選項和歌曲資訊
+    h(
+      'div',
+      { class: 'controls' },
+      h(
+        'div',
+        {},
+        h('h3', {}, '起點'),
+        nudgeRow(setStart, () => currentTrim().start),
+        h('h3', {}, '終點'),
+        nudgeRow(setEnd, () => currentTrim().end),
+        h('h3', {}, '刪除區段'),
+        cutList,
+      ),
+      h(
+        'div',
+        {},
+        h('h3', {}, '淡入淡出'),
+        h('label', { class: 'switch-row' }, fadeIn, '開頭淡入（2 秒）'),
+        h('label', { class: 'switch-row' }, fadeOut, '結尾淡出（2 秒）'),
+        h('h3', {}, '歌曲資訊（會顯示在手機的音樂播放器）'),
+        h('div', { class: 'tags' }, h('label', {}, '歌名'), titleInput, h('label', {}, '演出者'), artistInput),
+      ),
     ),
     message,
     h('div', { class: 'actions' }, cancelBtn, exportBtn),

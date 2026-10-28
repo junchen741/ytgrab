@@ -183,32 +183,103 @@ footer { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: spac
   .meter.indeterminate .meter-cells i::after { animation: none; }
 }
 
-.notice { margin: 0 0 12px; padding: 8px 12px; border-left: 4px solid var(--amber); border-radius: 4px; background: var(--well); font-size: 15px; }
+/* ---- 剪歌畫面 ---- */
+.view.editor { display: flex; flex-direction: column; gap: 14px; }
+/* 左右內距要放得下畫在波形框外面的 14px 拉桿 */
+.view.editor .display { gap: 10px; padding-left: 22px; padding-right: 22px; }
+.waveform { margin: 4px 0; }
+/* 沒裁的時候頭尾拉桿畫在波形框外面（見 editor.ts 的 placeEdgeHandle），wavesurfer 的捲動容器預設會把它裁掉。
+   這裡的波形永遠填滿寬度、不會捲動，所以改成不裁。 */
+.waveform ::part(scroll) { overflow: visible; }
+/* 刪除段加紅色邊框，蓋在波形上才看得出是紅色；頭尾段（id 是 head、tail）不加 */
+.waveform ::part(region) { box-shadow: inset 0 0 0 2px var(--cut); }
+.waveform ::part(head),
+.waveform ::part(tail) { box-shadow: none; }
+.readout { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 16px; font-size: 14px; }
+.readout label { display: flex; align-items: baseline; gap: 8px; }
+.readout input.time {
+  width: 8ch;
+  padding: 0 2px;
+  border: none;
+  border-bottom: 1px dashed rgba(124, 245, 208, 0.35);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--phosphor);
+  text-shadow: var(--glow);
+  font-family: "Doto", monospace;
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 1.1;
+  text-align: center;
+}
+.readout .length { opacity: 0.85; }
+.readout .length .dig { font-size: 22px; margin-left: 4px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0; font-size: 15px; color: var(--ink-muted); }
+.swatch { display: inline-block; width: 14px; height: 14px; margin-right: 6px; border-radius: 3px; vertical-align: -2px; }
+.swatch.edge { background: var(--phosphor-dim); border: 1px solid #5D7570; }
+.swatch.cut { background: var(--cut); }
+.transport { display: flex; flex-wrap: wrap; gap: 12px; }
+
+.controls { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0 28px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.controls h3 { margin: 16px 0 8px; font-size: 15px; font-weight: 700; color: var(--ink-muted); }
+.controls > div > h3:first-child { margin-top: 0; }
+.nudges { display: flex; flex-wrap: wrap; gap: 8px; }
+.cut-list { list-style: none; margin: 0 -8px; padding: 0; }
+.cut-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; padding: 4px 8px; border-radius: 6px; }
+.cut-list li.selected { background: rgba(255, 123, 123, 0.14); }
+.cut-list li.empty { color: var(--ink-muted); }
+/* 列表在機身上不在螢幕窗裡，用一般字型（點陣字在小字級不好讀），數字等寬對齊 */
+.cut-time { font-variant-numeric: tabular-nums; }
+
+/* 淡入淡出的開關：底層還是 checkbox，鍵盤和空白鍵照常可以用 */
+.switch-row { display: flex; align-items: center; gap: 10px; margin: 6px 0; cursor: pointer; }
+input.switch {
+  appearance: none;
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 26px;
+  margin: 0;
+  border: 1px solid var(--key-edge);
+  border-radius: 5px;
+  background: var(--well);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+input.switch::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--key-edge);
+  border-radius: 3px;
+  background: var(--key);
+  box-shadow: 0 2px 0 var(--key-shadow);
+}
+input.switch:checked { background: var(--amber); border-color: var(--amber-deep); }
+input.switch:checked::before { left: 22px; }
+
+.tags { display: grid; grid-template-columns: 4em 1fr; gap: 8px 10px; align-items: center; }
+.tags input { min-width: 0; }
+.actions { display: flex; justify-content: flex-end; gap: 12px; }
+.error-text { margin: 0; color: var(--cut); }
+.error-text:empty { display: none; }
+
+@media (max-width: 820px) {
+  .controls { grid-template-columns: 1fr; }
+  .controls > div + div > h3:first-child { margin-top: 16px; }
+}
+
+.notice { margin: 0; padding: 8px 12px; border-left: 4px solid var(--amber); border-radius: 4px; background: var(--well); font-size: 15px; }
 .banner { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px; background: var(--amber); color: var(--amber-ink); font-weight: 700; }
 .banner:empty { display: none; }
 
 /* ---- 以下是還沒改版的畫面規則 ---- */
 .lead, .hint { color: var(--muted); }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-
-
-.waveform { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 0; }
-/* 沒裁的時候頭尾拉桿畫在波形框外面（見 editor.ts 的 placeEdgeHandle），wavesurfer 的捲動容器預設會把它裁掉。
-   這裡的波形永遠填滿寬度、不會捲動，所以改成不裁。 */
-.waveform ::part(scroll) { overflow: visible; }
-.legend { font-size: 0.9rem; color: var(--muted); margin: 6px 0 16px; }
-.swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin: 0 4px 0 8px; }
-.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; margin-top: 16px; }
-.panel h3 { margin: 0 0 8px; font-size: 1.05rem; }
-.time-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
-.time-row label { width: 3em; font-weight: 600; }
-input.time { width: 7.5em; text-align: center; font-variant-numeric: tabular-nums; }
-.cut-list { list-style: none; padding: 0; margin: 0; }
-.cut-list li { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; }
-.cut-list li.selected { background: var(--accent-soft); }
-.cut-list li.empty { color: var(--muted); }
-.tags { display: grid; grid-template-columns: 5em 1fr; gap: 8px 12px; align-items: center; }
-.actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
 .error-message { font-size: 1.15rem; }
-.error-text { color: var(--danger); }
 .view.done, .view.error { margin-top: 48px; }
