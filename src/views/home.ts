@@ -57,7 +57,7 @@ export function homeView(p: HomeProps): HTMLElement {
         'div',
         { class: 'folder-row' },
         h('button', { class: 'path-well', tabindex: -1, title: '按一下選擇存檔的資料夾', onclick: p.onChangeFolder }, p.outputDir),
-        h('button', { onclick: p.onChangeFolder }, '變更'),
+        h('button', { class: 'nudge', onclick: p.onChangeFolder }, '變更'),
       ),
     ),
     h(

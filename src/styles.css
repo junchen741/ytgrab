@@ -130,21 +130,24 @@ input::placeholder { color: var(--ink-muted); opacity: 1; }
 .url-row { display: flex; gap: 12px; align-items: center; }
 .url-input { flex: 1; min-width: 0; font-size: 18px; padding: 11px 14px; }
 .home .hint { margin: -4px 0 0; min-height: 1.6em; }
-.folder { display: flex; flex-direction: column; gap: 6px; }
-.folder-label { font-size: 15px; font-weight: 700; color: var(--ink-muted); }
-.folder-row { display: flex; align-items: stretch; gap: 12px; }
-/* 存檔路徑：外觀和輸入框一樣是凹槽，但它是按鈕（點了開選資料夾），不要有按鍵的厚度和下沉 */
+/* 存檔位置：和標籤排同一行，框和按鍵都比網址列小，不要搶走網址列的注意力 */
+.folder { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.folder-label { flex: none; color: var(--ink-muted); }
+.folder-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.folder-row button.nudge { flex: none; } /* 路徑很長時也不要把「變更」擠成直排 */
+/* 存檔路徑：外觀是凹槽，但它是按鈕（點了開選資料夾），不要有按鍵的厚度和下沉；寬度跟著路徑長短 */
 button.path-well,
 button.path-well:active {
-  flex: 1;
   min-width: 0;
-  padding: 9px 12px;
-  border: 2px solid var(--key-edge);
-  border-radius: 6px;
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid var(--key-edge);
+  border-radius: 5px;
   background: var(--well);
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
   transform: none;
   color: var(--ink);
+  font-size: 15px;
   font-weight: 400;
   text-align: left;
   overflow-wrap: anywhere;
