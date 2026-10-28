@@ -213,7 +213,8 @@ footer { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: spac
 
 .legend { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0; font-size: 15px; color: var(--ink-muted); }
 .swatch { display: inline-block; width: 14px; height: 14px; margin-right: 6px; border-radius: 3px; vertical-align: -2px; }
-.swatch.edge { background: var(--phosphor-dim); border: 1px solid #5D7570; }
+/* 外框比色塊亮一點，放在機身上才看得到這個暗色方塊 */
+.swatch.edge { background: var(--phosphor-dim); border: 1px solid color-mix(in srgb, var(--phosphor) 30%, var(--phosphor-dim)); }
 .swatch.cut { background: var(--cut); }
 .transport { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 /* 淡入淡出的開關放在播放鍵同一列的右邊 */

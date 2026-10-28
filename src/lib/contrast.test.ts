@@ -11,6 +11,12 @@ test('contrastRatio 黑白是 21、同色是 1', () => {
   expect(contrastRatio('#777777', '#777777')).toBeCloseTo(1, 5);
 });
 
+test('styles.css：顏色都來自 :root 的 token，其他地方不直接寫 #色碼', () => {
+  const rootEnd = css.indexOf('}', css.indexOf(':root {'));
+  const outsideRoot = css.slice(rootEnd + 1);
+  expect(outsideRoot.match(/#[0-9a-fA-F]{3,8}\b/g)).toBeNull();
+});
+
 test('tokenColors 只取 #RRGGBB', () => {
   expect(tokenColors(':root { --a: #112233; --b: rgba(1,2,3,.5); }')).toEqual({ a: '#112233' });
 });
