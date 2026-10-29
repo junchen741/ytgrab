@@ -318,6 +318,24 @@ input.switch:checked::before { left: 22px; }
 .display .error-message { overflow-wrap: anywhere; }
 .display .error-message { font-size: 18px; }
 
+/* ---- 確認小視窗：一塊小機身，上面是琥珀色的螢幕窗，下面兩顆鍵 ---- */
+dialog.confirm {
+  width: min(500px, calc(100vw - 32px));
+  max-width: none;
+  padding: 18px;
+  border: 2px solid var(--bevel);
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--body-top), var(--body-bottom));
+  color: var(--ink);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+}
+dialog.confirm::backdrop { background: rgba(0, 0, 0, 0.6); }
+dialog.confirm .display { margin-bottom: 18px; }
+dialog.confirm .display-title { font-size: 22px; }
+dialog.confirm .actions { flex-wrap: wrap; }
+
 /* ---- 共用 ---- */
 .hint { margin: 0; color: var(--ink-muted); }
 .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }

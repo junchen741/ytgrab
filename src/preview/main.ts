@@ -1,4 +1,4 @@
-// 開發用畫面預覽：/preview.html?view=<home|progress|progress-wait|editor|done|error>[&long=1]
+// 開發用畫面預覽：/preview.html?view=<home|progress|progress-wait|editor|leave|done|error>[&long=1]
 // 用假資料畫出單一畫面，給 scripts/preview-shots.ps1 截圖與檢查橫向捲軸。正式版不會打包這一頁。
 // 剪歌畫面可以加 &peaks=<網址>，改用真實歌曲的波形（JSON：{ "duration": 秒, "peaks": [...] }，每秒 50 點）。
 import type { PreparedAudio } from '../api/types';
@@ -39,8 +39,8 @@ const home = (url: string | null) =>
     onOpenNotices: log('onOpenNotices'),
   });
 
-const editor = (prepared: PreparedAudio) =>
-  editorView({
+const editor = (prepared: PreparedAudio) => {
+  const e = editorView({
     video: fixtureVideo(long),
     prepared,
     // 音訊長度要和 prepared.duration 一樣：音訊載入後 wavesurfer 會改用音訊本身的長度，
@@ -49,7 +49,11 @@ const editor = (prepared: PreparedAudio) =>
     coverUrl: fixtureCoverUrl(),
     onExport: async (req) => log('onExport')(req),
     onCancel: log('onCancel'),
-  }).el;
+  });
+  // 預覽頁沒有視窗的 ✕，給檢查腳本直接呼叫按 ✕ 時的確認
+  (window as unknown as { __editor: typeof e }).__editor = e;
+  return e.el;
+};
 
 function render(): Node {
   switch (view) {
@@ -80,6 +84,12 @@ function render(): Node {
         return document.createTextNode('');
       }
       return editor(fixturePrepared(long));
+    }
+    case 'leave': {
+      // 剪歌畫面＋按「回首頁」跳出的確認小視窗（microtask 時畫面已經掛上去，小視窗才開得起來）
+      const el = editor(fixturePrepared(long));
+      queueMicrotask(() => [...el.querySelectorAll('button')].find((b) => b.textContent === '回首頁')?.click());
+      return el;
     }
     case 'done':
       return doneView({ path: fixtureSavedPath(long), onReveal: log('onReveal'), onNext: log('onNext') });

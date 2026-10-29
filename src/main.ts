@@ -113,7 +113,12 @@ function openEditor(video: VideoInfo, prepared: PreparedAudio) {
     },
     onCancel: () => goHome(),
   });
-  show(editor.el, editor.destroy);
+  // 只有剪歌畫面按 ✕ 會先問；離開剪歌畫面就恢復直接關閉
+  const stopGuard = api.guardWindowClose(editor.confirmClose);
+  show(editor.el, () => {
+    stopGuard();
+    editor.destroy();
+  });
 }
 
 async function boot() {

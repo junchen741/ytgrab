@@ -16,6 +16,8 @@ export interface Api {
   clipboardUrl(): Promise<string | null>;
   /** yt-dlp 開始／結束更新時通知；回傳取消訂閱的函式。 */
   onYtdlpUpdating(cb: (updating: boolean) => void): Promise<() => void>;
+  /** 使用者按視窗的 ✕（或 Alt+F4）時先問 `shouldClose`，回答 false 就不關；回傳取消攔截的函式。 */
+  guardWindowClose(shouldClose: () => Promise<boolean>): () => void;
   audioUrl(path: string): string;
   imageUrl(path: string): string;
 }

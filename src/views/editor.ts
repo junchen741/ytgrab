@@ -4,6 +4,7 @@ import type { AppError, ExportRequest, PreparedAudio, Range, TrimSpec, VideoInfo
 import { endPreviewStart, nextPlaybackAction } from '../lib/playback';
 import { formatTime, parseTime } from '../lib/time';
 import { approxLength, draggedPastEdge, EDGE_MIN, exactEndFor, MIN_GAP, tailMinSeconds, trimFromRegions } from '../lib/trim';
+import { confirmDialog } from '../ui/confirm';
 import { h } from '../ui/dom';
 import { videoHeader } from '../ui/videoHeader';
 
@@ -58,10 +59,18 @@ export interface EditorProps {
   audioUrl: string;
   coverUrl: string | null;
   onExport(req: ExportRequest): Promise<void>;
+  /** 按「回首頁」並在小視窗選了「不存了」之後呼叫。 */
   onCancel(): void;
 }
 
-export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void } {
+export interface EditorView {
+  el: HTMLElement;
+  destroy(): void;
+  /** 使用者按視窗的 ✕ 時先問一次；回傳 true 代表可以關閉。 */
+  confirmClose(): Promise<boolean>;
+}
+
+export function editorView(p: EditorProps): EditorView {
   const { duration, suggested } = p.prepared;
 
   // ---- 波形與區段 ----
@@ -360,7 +369,8 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   }
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement) return;
+    // 確認小視窗開著時，空白鍵是按下小視窗裡選中的鍵，Delete 也不能動到背後的刪除段
+    if (e.target instanceof HTMLInputElement || document.querySelector('dialog[open]')) return;
     if ((e.key === 'Delete' || e.key === 'Backspace') && selected) {
       e.preventDefault();
       removeCut(selected);
@@ -392,11 +402,38 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
   const artistInput = h('input', { type: 'text', value: p.video.tags.artist });
   const message = h('p', { class: 'error-text' });
   const exportBtn = h('button', { class: 'primary big' }, '存成 MP3');
-  const cancelBtn = h('button', { class: 'big', onclick: () => p.onCancel() }, '取消');
+
+  // 離開剪歌畫面會丟掉剪好的設定，再剪同一首得重新下載，所以先問一次。
+  // 已經在問了（例如小視窗開著又按 ✕）就不再開第二個，當作不離開。
+  let asking = false;
+  async function askLeave(leave: string): Promise<boolean> {
+    if (asking) return false;
+    asking = true;
+    try {
+      return await confirmDialog({
+        title: '還沒存檔，確定要離開嗎？',
+        message: '剪好的設定會清掉。之後要再剪這首歌，得重新下載。',
+        stay: '繼續剪歌',
+        leave,
+      });
+    } finally {
+      asking = false;
+    }
+  }
+  const homeBtn = h(
+    'button',
+    {
+      class: 'big',
+      onclick: async () => {
+        if (await askLeave('不存了，回首頁')) p.onCancel();
+      },
+    },
+    '回首頁',
+  );
 
   function setBusy(busy: boolean) {
     exportBtn.disabled = busy;
-    cancelBtn.disabled = busy;
+    homeBtn.disabled = busy;
     exportBtn.textContent = busy ? '存檔中…' : '存成 MP3';
   }
 
@@ -477,7 +514,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       ),
     ),
     message,
-    h('div', { class: 'actions' }, cancelBtn, exportBtn),
+    h('div', { class: 'actions' }, homeBtn, exportBtn),
   );
 
   renderNotice();
@@ -491,5 +528,6 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       document.removeEventListener('pointermove', onPointerMove, true);
       ws.destroy();
     },
+    confirmClose: () => askLeave('不存了，關閉程式'),
   };
 }

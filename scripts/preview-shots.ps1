@@ -19,7 +19,7 @@ $profileDir = Join-Path $env:TEMP 'ytgrab-preview-edge'
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $OutDir = (Resolve-Path $OutDir).Path
 
-$cases = @('home', 'home-long', 'progress', 'progress-long', 'progress-wait', 'editor', 'editor-long', 'done', 'done-long', 'error', 'error-long')
+$cases = @('home', 'home-long', 'progress', 'progress-long', 'progress-wait', 'editor', 'editor-long', 'leave', 'done', 'done-long', 'error', 'error-long')
 if ($Only) { $cases = @($cases | Where-Object { $_ -eq $Only }) }
 if ($cases.Count -eq 0) { Write-Error "沒有這個案例：$Only"; exit 2 }
 $sizes = @(@(720, 600), @(900, 740))

@@ -1,5 +1,6 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import type { Api } from './index';
@@ -31,6 +32,14 @@ export const tauriApi: Api = {
     invoke('copy_error_report', { url, stage, kind: error.kind, detail: error.detail }),
   clipboardUrl: () => invoke('clipboard_youtube_url'),
   onYtdlpUpdating: (cb) => listen<boolean>('ytdlp-update', (e) => cb(e.payload)),
+  // 有人在聽關閉事件時，Tauri 會先擋下關窗；沒呼叫 preventDefault 的話由這裡關掉視窗
+  //（要有 capabilities 的 core:window:allow-destroy 權限，否則選了「關閉」也關不掉）
+  guardWindowClose(shouldClose) {
+    const unlisten = getCurrentWindow().onCloseRequested(async (e) => {
+      if (!(await shouldClose())) e.preventDefault();
+    });
+    return () => void unlisten.then((stop) => stop());
+  },
   audioUrl: (path) => convertFileSrc(path),
   imageUrl: (path) => convertFileSrc(path),
 };
