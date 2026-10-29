@@ -30,6 +30,12 @@ static TRAILING_NOISE: LazyLock<Regex> = LazyLock::new(|| {
 });
 static QUOTED_TITLE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"[《「『【]([^》」』】]+)[》」』】]").unwrap());
+/// 演唱會影片的出處說明「from『演唱會名稱』」（也接受「」《》），連同前面的「 / 」一起拿掉，
+/// 否則『』裡的演唱會名稱會被 QUOTED_TITLE 當成歌名。from 必須是獨立的字（前面是開頭、空白或分隔符號），
+/// 所以歌名本身含有 from（例如「Letters from Home」）不受影響。
+static FROM_SOURCE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)[\s/／|｜]*(?:^|[\s/／|｜])from\s*[『「《][^』」》]*[』」》]").unwrap()
+});
 /// 標題結尾的「covered by 某人」或「(Cover by 某人)」，第 1 組是翻唱的人。
 static COVERED_BY: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"(?i)[\s\-|｜/]*[(\[【（]?\s*cover(?:ed)?\s+by\s+([^)\]】）|｜]+?)\s*[)\]】）]?\s*$").unwrap()
@@ -85,7 +91,8 @@ pub fn clean_title(raw: &str) -> String {
     let without_groups = BRACKET_GROUP.replace_all(raw, |caps: &Captures| {
         if is_noise(&caps[1]) { String::new() } else { caps[0].to_string() }
     });
-    let mut s = without_groups.split_whitespace().collect::<Vec<_>>().join(" ");
+    let joined = without_groups.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut s = FROM_SOURCE.replace_all(&joined, "").into_owned();
     loop {
         let next = TRAILING_NOISE.replace(&s, "${1}").into_owned();
         if next == s {
@@ -177,6 +184,26 @@ mod tests {
     fn channel_cleanup() {
         assert_eq!(clean_channel("Ava Lin - Topic"), "Ava Lin");
         assert_eq!(clean_channel("AvaLinVEVO"), "AvaLin");
+    }
+
+    // 演唱會影片：標題後面的「from『演唱會名稱』」是出處說明，不是歌名
+
+    #[test]
+    fn from_quoted_source_after_slash_is_dropped() {
+        let got = guess_tags("Ava Lin - Morning Light / from『Harbor Lights Tour 2025』", "Ava Lin", None, None);
+        assert_eq!(got, tags("Morning Light", "Ava Lin"));
+    }
+
+    #[test]
+    fn from_corner_quoted_source_with_inner_quotes_is_dropped() {
+        let got = guess_tags("ミライ - 夜明けの歌 from「“Starlit Night Tour” at 港ホール」", "ミライ", None, None);
+        assert_eq!(got, tags("夜明けの歌", "ミライ"));
+    }
+
+    #[test]
+    fn from_inside_the_quoted_title_is_kept() {
+        let got = guess_tags("ミライ「Letters from Home」", "ミライ", None, None);
+        assert_eq!(got, tags("Letters from Home", "ミライ"));
     }
 
     // 翻唱影片：演出者寫實際在唱的人，不是上傳頻道
