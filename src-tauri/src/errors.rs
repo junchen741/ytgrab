@@ -20,6 +20,8 @@ pub enum ErrorKind {
     Export,
     /// 找不到或無法執行外部工具，多半是被防毒軟體隔離。
     ToolMissing,
+    /// 使用者按了「停止」；前端會直接回首頁，不顯示錯誤。
+    Cancelled,
     /// 寫不進存檔資料夾，例如 Windows「受控資料夾存取」擋住未簽章程式。
     SaveFailed,
     Unknown,
@@ -92,6 +94,7 @@ pub fn user_message(kind: ErrorKind) -> &'static str {
         ErrorKind::Export => "轉檔時發生錯誤。如果一直失敗，請把錯誤報告傳給開發人員。",
         ErrorKind::ToolMissing => "防毒軟體可能把 YTGrab 需要的元件刪掉了。請重新安裝 YTGrab 再試一次；如果一直發生，請把錯誤報告傳給開發人員。",
         ErrorKind::SaveFailed => "無法存到目前的存檔資料夾，可能是 Windows 的安全性設定擋住了。請到首頁按「變更」換一個資料夾（例如桌面上新建的資料夾）再試一次。",
+        ErrorKind::Cancelled => "已停止。",
         ErrorKind::Unknown => "發生了預期外的錯誤。如果一直失敗，請把錯誤報告傳給開發人員。",
     }
 }

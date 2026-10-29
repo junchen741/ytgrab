@@ -5,6 +5,8 @@ export interface Api {
   appInfo(): Promise<AppInfo>;
   fetchInfo(url: string): Promise<VideoInfo>;
   prepareAudio(onProgress: (e: ProgressEvent) => void): Promise<PreparedAudio>;
+  /** 首頁的「停止」：正在進行的 fetchInfo／prepareAudio 會以 kind 'cancelled' 的錯誤結束。 */
+  stopWork(): Promise<void>;
   exportMp3(req: ExportRequest): Promise<string>;
   setOutputDir(dir: string): Promise<void>;
   pickFolder(current: string): Promise<string | null>;

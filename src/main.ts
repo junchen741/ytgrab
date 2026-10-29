@@ -61,18 +61,29 @@ function showError(e: unknown, url: string, stage: Stage) {
   goHome(url, { kind: 'error', error, onCopyReport: () => api.copyErrorReport({ url, stage, error }) });
 }
 
+/** 每次按「開始」加一；按「停止」也加一，舊的那次流程看到數字變了就不再往下走。 */
+let flowId = 0;
+
 async function startFlow(url: string) {
   lastUrl = url;
+  const id = ++flowId;
+  const stopped = () => id !== flowId;
   // 開程式時的 yt-dlp 更新還沒結束的話，解析會先等它；先說清楚，免得家人以為當掉了
-  const progress = home.startWork(ytdlpUpdating ? UPDATING_TEXT : '正在讀取影片資訊…');
+  const progress = home.startWork(ytdlpUpdating ? UPDATING_TEXT : '正在讀取影片資訊…', () => {
+    // 後端收到後會結束 yt-dlp／ffmpeg；不用等它，直接回首頁，網址留在框裡
+    flowId++;
+    void api.stopWork();
+    goHome(url);
+  });
 
   let video: VideoInfo;
   try {
     video = await api.fetchInfo(url);
   } catch (e) {
-    showError(e, url, '解析');
+    if (!stopped()) showError(e, url, '解析');
     return;
   }
+  if (stopped()) return;
   progress.setVideo(video);
   progress.setText('正在下載音訊…');
 
@@ -87,9 +98,10 @@ async function startFlow(url: string) {
       }
     });
   } catch (e) {
-    showError(e, video.url, '下載');
+    if (!stopped()) showError(e, video.url, '下載');
     return;
   }
+  if (stopped()) return;
   openEditor(video, prepared);
 }
 

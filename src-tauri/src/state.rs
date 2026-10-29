@@ -1,6 +1,7 @@
 //! 整個程式共用的狀態。
 
 use crate::settings::Settings;
+use crate::stop::StopSignal;
 use crate::tools::Tools;
 use crate::ytdlp::VideoInfo;
 use std::path::PathBuf;
@@ -31,6 +32,8 @@ pub struct AppState {
     /// 這次開啟程式後是否已經「失敗 → 強制更新 → 重試」過，避免一直重試。
     pub retried_with_update: AtomicBool,
     pub session: Mutex<Option<Session>>,
+    /// 首頁的「停止」鍵：結束正在進行的讀取影片資訊或下載。
+    pub stop: StopSignal,
 }
 
 impl AppState {
@@ -46,6 +49,7 @@ impl AppState {
             ytdlp_updating: AtomicBool::new(false),
             retried_with_update: AtomicBool::new(false),
             session: Mutex::new(None),
+            stop: StopSignal::new(),
         }
     }
 }

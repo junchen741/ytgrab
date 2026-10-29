@@ -27,8 +27,9 @@ export interface HomeView {
   /**
    * 按下「開始」之後呼叫：網址列和存檔位置先鎖住，螢幕窗從「準備好了」（或上一首的結果）換成進度顯示。
    * 讀取影片資訊和下載都在這一頁進行，不換頁；下載完才進剪歌畫面。
+   * 螢幕窗下面有「停止」鍵，按了呼叫 `onStop`。
    */
-  startWork(initialText: string): ProgressDisplay;
+  startWork(initialText: string, onStop: () => void): ProgressDisplay;
 }
 
 export function homeView(p: HomeProps): HomeView {
@@ -105,11 +106,13 @@ export function homeView(p: HomeProps): HomeView {
 
   return {
     el,
-    startWork(initialText) {
+    startWork(initialText, onStop) {
       for (const c of [input, startBtn, pathWell, changeBtn]) c.disabled = true;
       hint.textContent = '';
       const progress = progressDisplay(initialText);
-      statusPanel.replaceWith(progress.el);
+      // 貼錯網址或等太久時可以中途放棄；按了就回首頁，網址留在框裡
+      const stopBtn = h('button', { onclick: onStop }, '停止');
+      statusPanel.replaceWith(h('div', { class: 'panel' }, progress.el, h('div', { class: 'row' }, stopBtn)));
       return progress;
     },
   };

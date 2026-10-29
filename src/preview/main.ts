@@ -59,7 +59,7 @@ function render(): Node {
     // 讀取與下載都在首頁進行：先畫首頁，再像 main.ts 一樣呼叫 startWork
     case 'progress': {
       const h = home(null);
-      const p = h.startWork('正在讀取影片資訊…');
+      const p = h.startWork('正在讀取影片資訊…', log('onStop'));
       p.setVideo(fixtureVideo(long));
       p.setText('正在下載音訊…');
       p.setPercent(42);
@@ -68,7 +68,7 @@ function render(): Node {
     case 'progress-wait': {
       const h = home(null);
       // 和 main.ts 的 UPDATING_TEXT 同一段話
-      const p = h.startWork('正在更新下載元件（第一次開啟或 YouTube 改版後需要），最多約一分鐘…');
+      const p = h.startWork('正在更新下載元件（第一次開啟或 YouTube 改版後需要），最多約一分鐘…', log('onStop'));
       p.setPercent(null);
       return h.el;
     }

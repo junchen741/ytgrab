@@ -10,6 +10,7 @@ pub mod segments;
 pub mod settings;
 pub mod sponsorblock;
 pub mod state;
+pub mod stop;
 pub mod title;
 pub mod tools;
 pub mod video_url;
@@ -48,6 +49,7 @@ pub fn run() {
             commands::app_info,
             commands::fetch_info,
             commands::prepare_audio,
+            commands::stop_work,
             commands::export_mp3,
             commands::set_output_dir,
             commands::copy_error_report,

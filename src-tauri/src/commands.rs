@@ -65,6 +65,24 @@ fn no_session() -> AppError {
     AppError::new(ErrorKind::Unknown, "沒有進行中的影片")
 }
 
+fn stopped() -> AppError {
+    AppError::new(ErrorKind::Cancelled, "使用者按了停止")
+}
+
+/// 「正在更新 yt-dlp」結束時（包括更新到一半被「停止」丟掉）把狀態改回來並通知前端，
+/// 否則前端下次會一直顯示「正在更新下載元件」。
+struct UpdatingDone<'a> {
+    app: &'a AppHandle,
+    state: &'a AppState,
+}
+
+impl Drop for UpdatingDone<'_> {
+    fn drop(&mut self) {
+        self.state.ytdlp_updating.store(false, Ordering::SeqCst);
+        let _ = self.app.emit("ytdlp-update", false);
+    }
+}
+
 /// 清掉上一首的暫存檔，開一個新的暫存資料夾。
 fn new_session_dir(cache_dir: &Path) -> std::io::Result<PathBuf> {
     let root = cache_dir.join("sessions");
@@ -83,6 +101,8 @@ pub async fn update_ytdlp(app: &AppHandle, state: &AppState) {
     let _gate = state.ytdlp_gate.write().await;
     state.ytdlp_updating.store(true, Ordering::SeqCst);
     let _ = app.emit("ytdlp-update", true);
+    // 比 _gate 晚宣告、先被 drop：先通知更新結束，再放開寫入鎖（和原本的順序一樣）
+    let _done = UpdatingDone { app, state };
 
     // 逾時會丟棄 future，子程序因 kill_on_drop 被結束；yt-dlp 是先下載成 .new 再換檔，原本的 exe 不受影響
     let result = match tokio::time::timeout(UPDATE_TIMEOUT, ytdlp::self_update(&state.tools)).await {
@@ -108,9 +128,7 @@ pub async fn update_ytdlp(app: &AppHandle, state: &AppState) {
             };
         }
     }
-
-    state.ytdlp_updating.store(false, Ordering::SeqCst);
-    let _ = app.emit("ytdlp-update", false);
+    // 「正在更新」由 _done 在這裡 drop 時改回來
 }
 
 /// 兩種失敗值得自動補救一次再重試：
@@ -166,8 +184,11 @@ pub async fn fetch_info(app: AppHandle, url: String, state: State<'_, AppState>)
         .map_err(|e| AppError::new(ErrorKind::Unknown, format!("無法建立暫存資料夾：{e}")))?;
     logging::info(format!("解析 {canonical}"));
 
-    let info = with_update_retry(&app, state.inner(), || ytdlp::fetch_info(&state.tools, &canonical, &dir))
+    let info = state
+        .stop
+        .run(with_update_retry(&app, state.inner(), || ytdlp::fetch_info(&state.tools, &canonical, &dir)))
         .await
+        .ok_or_else(stopped)?
         .inspect_err(log_err)?;
     *lock(&state.session) = Some(Session { dir, info: info.clone(), audio: None, cover: None, duration: 0.0 });
     Ok(info)
@@ -184,26 +205,31 @@ pub async fn prepare_audio(app: AppHandle, state: State<'_, AppState>) -> Result
         let _ = app.emit("prepare-progress", ProgressEvent { stage, percent });
     };
 
-    emit("download", Some(0.0));
-    let downloaded = with_update_retry(&app, state.inner(), || {
-        ytdlp::download_audio(&state.tools, &dir, |p| emit("download", Some(p)))
-    })
-    .await
-    .inspect_err(log_err)?;
+    // 下載和分析波形都可以按「停止」中途放棄
+    let work = async {
+        emit("download", Some(0.0));
+        let downloaded = with_update_retry(&app, state.inner(), || {
+            ytdlp::download_audio(&state.tools, &dir, |p| emit("download", Some(p)))
+        })
+        .await?;
 
-    emit("analyze", None);
-    let cover_target = dir.join("cover.jpg");
-    let (peaks_result, non_music, cover) = tokio::join!(
-        media::compute_peaks(&state.tools, &downloaded.audio),
-        sponsorblock::fetch_non_music(&video_id),
-        async {
-            match &downloaded.thumbnail {
-                Some(t) => media::make_cover(&state.tools, t, &cover_target).await,
-                None => None,
-            }
-        },
-    );
-    let (peaks, duration) = peaks_result.inspect_err(log_err)?;
+        emit("analyze", None);
+        let cover_target = dir.join("cover.jpg");
+        let (peaks_result, non_music, cover) = tokio::join!(
+            media::compute_peaks(&state.tools, &downloaded.audio),
+            sponsorblock::fetch_non_music(&video_id),
+            async {
+                match &downloaded.thumbnail {
+                    Some(t) => media::make_cover(&state.tools, t, &cover_target).await,
+                    None => None,
+                }
+            },
+        );
+        let (peaks, duration) = peaks_result?;
+        Ok::<_, AppError>((downloaded, peaks, duration, non_music, cover))
+    };
+    let (downloaded, peaks, duration, non_music, cover) =
+        state.stop.run(work).await.ok_or_else(stopped)?.inspect_err(log_err)?;
     let suggested = sponsorblock::suggest_trim(&non_music, duration);
     logging::info(format!("音訊 {duration:.1} 秒，SponsorBlock 非音樂段落 {} 段", non_music.len()));
 
@@ -220,6 +246,13 @@ pub async fn prepare_audio(app: AppHandle, state: State<'_, AppState>) -> Result
         cover_path: cover.map(|c| c.display().to_string()),
         suggested,
     })
+}
+
+/// 首頁的「停止」鍵：結束正在進行的讀取影片資訊或下載（見 StopSignal）。
+#[tauri::command]
+pub fn stop_work(state: State<'_, AppState>) {
+    logging::info("使用者按了停止");
+    state.stop.stop();
 }
 
 #[tauri::command]

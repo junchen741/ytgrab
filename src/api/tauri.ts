@@ -17,6 +17,7 @@ export const tauriApi: Api = {
       unlisten();
     }
   },
+  stopWork: () => invoke('stop_work'),
   exportMp3: (req) => invoke('export_mp3', { req }),
   setOutputDir: (dir) => invoke('set_output_dir', { dir }),
   async pickFolder(current) {
