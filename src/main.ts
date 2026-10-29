@@ -2,6 +2,7 @@ import './styles.css';
 import { api } from './api';
 import { isAppError, type AppError, type AppInfo, type PreparedAudio, type Stage, type VideoInfo } from './api/types';
 import { mount } from './ui/dom';
+import { showUpdateBanner } from './updater';
 import { editorView } from './views/editor';
 import { homeView, type HomeResult, type HomeView } from './views/home';
 
@@ -140,6 +141,7 @@ async function boot() {
     ytdlpUpdating = updating;
   });
   goHome();
+  void showUpdateBanner(document.querySelector<HTMLElement>('#banner')!);
 }
 
 void boot();
