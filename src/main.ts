@@ -2,10 +2,8 @@ import './styles.css';
 import { api } from './api';
 import { isAppError, type AppError, type AppInfo, type PreparedAudio, type Stage, type VideoInfo } from './api/types';
 import { mount } from './ui/dom';
-import { doneView } from './views/done';
 import { editorView } from './views/editor';
-import { errorView } from './views/error';
-import { homeView, type HomeView } from './views/home';
+import { homeView, type HomeResult, type HomeView } from './views/home';
 
 const UPDATING_TEXT = '正在更新下載元件（第一次開啟或 YouTube 改版後需要），最多約一分鐘…';
 
@@ -15,7 +13,7 @@ let leaveCurrentView: (() => void) | undefined;
 let ytdlpUpdating = false;
 /** 上一次處理的網址；回到首頁時不要再把同一個網址從剪貼簿帶進來。 */
 let lastUrl = '';
-/** 目前的首頁；讀取影片資訊和下載都在首頁進行（見 HomeView.startWork）。 */
+/** 目前的首頁；讀取影片資訊、下載、存好與出錯的結果都在首頁的螢幕窗裡顯示。 */
 let home: HomeView;
 
 function show(view: HTMLElement, onLeave?: () => void) {
@@ -29,11 +27,12 @@ function toAppError(e: unknown): AppError {
   return { kind: 'unknown', message: '發生了預期外的錯誤。如果一直失敗，請把錯誤報告傳給開發人員。', detail: String(e) };
 }
 
-function goHome(prefill = '') {
+function goHome(prefill = '', result?: HomeResult) {
   home = homeView({
     outputDir: appInfo.outputDir,
     version: appInfo.version,
     prefill,
+    result,
     suggestUrl: prefill
       ? undefined
       : api
@@ -56,9 +55,10 @@ async function changeFolder() {
   goHome();
 }
 
+/** 回到首頁、網址留在框裡，螢幕窗顯示錯誤；按「開始」就能重試。 */
 function showError(e: unknown, url: string, stage: Stage) {
   const error = toAppError(e);
-  show(errorView({ error, onCopyReport: () => api.copyErrorReport({ url, stage, error }), onBack: () => goHome(url) }));
+  goHome(url, { kind: 'error', error, onCopyReport: () => api.copyErrorReport({ url, stage, error }) });
 }
 
 async function startFlow(url: string) {
@@ -109,7 +109,7 @@ function openEditor(video: VideoInfo, prepared: PreparedAudio) {
         showError(error, video.url, '匯出');
         return;
       }
-      show(doneView({ path: out, onReveal: () => void api.revealFile(out), onNext: () => goHome() }));
+      goHome('', { kind: 'done', path: out, onReveal: () => void api.revealFile(out) });
     },
     onCancel: () => goHome(),
   });

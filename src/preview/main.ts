@@ -4,10 +4,8 @@
 import type { PreparedAudio } from '../api/types';
 import '../styles.css';
 import { mount } from '../ui/dom';
-import { doneView } from '../views/done';
 import { editorView } from '../views/editor';
-import { errorView } from '../views/error';
-import { homeView } from '../views/home';
+import { homeView, type HomeResult } from '../views/home';
 import {
   fixtureCoverUrl,
   fixtureError,
@@ -27,11 +25,12 @@ const log =
   (...args: unknown[]) =>
     console.log(`[preview] ${name}`, ...args);
 
-const home = (url: string | null) =>
+const home = (url: string | null, result?: HomeResult, prefill = '') =>
   homeView({
     outputDir: fixtureOutputDir(long),
     version: '0.1.0',
-    prefill: '',
+    prefill,
+    result,
     suggestUrl: Promise.resolve(url),
     onSubmit: log('onSubmit'),
     onChangeFolder: log('onChangeFolder'),
@@ -91,10 +90,15 @@ function render(): Node {
       queueMicrotask(() => [...el.querySelectorAll('button')].find((b) => b.textContent === '回首頁')?.click());
       return el;
     }
+    // 存好與出錯都回到首頁，結果顯示在螢幕窗裡；出錯時網址留在框裡
     case 'done':
-      return doneView({ path: fixtureSavedPath(long), onReveal: log('onReveal'), onNext: log('onNext') });
+      return home(null, { kind: 'done', path: fixtureSavedPath(long), onReveal: log('onReveal') }).el;
     case 'error':
-      return errorView({ error: fixtureError(long), onCopyReport: async () => log('onCopyReport')(), onBack: log('onBack') });
+      return home(
+        null,
+        { kind: 'error', error: fixtureError(long), onCopyReport: async () => log('onCopyReport')() },
+        'https://www.youtube.com/watch?v=preview0001',
+      ).el;
     default:
       return home(long ? 'https://www.youtube.com/watch?v=preview0001' : null).el;
   }

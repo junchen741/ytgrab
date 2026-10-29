@@ -327,9 +327,8 @@ input.switch:checked::before { left: 22px; }
 .banner { display: flex; gap: 12px; align-items: center; justify-content: center; padding: 10px 16px; background: var(--amber); color: var(--amber-ink); font-weight: 700; }
 .banner:empty { display: none; }
 
-/* ---- 完成與錯誤畫面 ---- */
-.view.done,
-.view.error { display: flex; flex-direction: column; gap: 14px; }
+/* ---- 首頁螢幕窗的完成與錯誤狀態：螢幕窗加下方一列按鍵 ---- */
+.home .panel { display: flex; flex-direction: column; gap: 12px; }
 .display .saved,
 .display .error-message { overflow-wrap: anywhere; }
 .display .error-message { font-size: 18px; }
