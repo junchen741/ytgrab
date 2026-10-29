@@ -185,7 +185,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     cutList.replaceChildren(
       ...(items.length > 0
         ? items
-        : [h('li', { class: 'empty' }, '沒有刪除區段。要剪掉中間某一段，就在波形上按住滑鼠拖拉。')]),
+        : [h('li', { class: 'empty' }, '當前沒有刪除區段。')]),
     );
     refresh();
   }
@@ -445,8 +445,8 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
     h(
       'p',
       { class: 'legend' },
-      h('span', {}, h('span', { class: 'swatch edge' }), '暗掉的＝頭尾不要，拖拉兩邊的拉桿調整'),
-      h('span', {}, h('span', { class: 'swatch cut' }), '紅色＝中間刪掉，在波形上按住拖拉新增'),
+      h('span', {}, h('span', { class: 'swatch edge' }), '暗掉的＝移除歌曲頭尾部分，拖拉兩邊的拉桿調整'),
+      h('span', {}, h('span', { class: 'swatch cut' }), '紅色＝歌曲中間刪除區段，在波形上按住拖拉即可新增'),
     ),
     hasSuggestion ? notice : null,
     h(
@@ -472,7 +472,7 @@ export function editorView(p: EditorProps): { el: HTMLElement; destroy(): void }
       h(
         'div',
         {},
-        h('h3', {}, '歌曲資訊（會顯示在手機的音樂播放器）'),
+        h('h3', {}, '歌曲資訊'),
         h('div', { class: 'tags' }, h('label', {}, '歌名'), titleInput, h('label', {}, '演出者'), artistInput),
       ),
     ),
