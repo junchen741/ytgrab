@@ -6,6 +6,7 @@ import { formatTime, parseTime } from '../lib/time';
 import { approxLength, draggedPastEdge, EDGE_MIN, exactEndFor, MIN_GAP, tailMinSeconds, trimFromRegions } from '../lib/trim';
 import { confirmDialog } from '../ui/confirm';
 import { h } from '../ui/dom';
+import { icon } from '../ui/icons';
 import { videoHeader } from '../ui/videoHeader';
 
 type Region = ReturnType<RegionsPlugin['addRegion']>;
@@ -398,8 +399,9 @@ export function editorView(p: EditorProps): EditorView {
   // ---- 選項、歌曲資訊、匯出 ----
   const fadeIn = h('input', { type: 'checkbox', class: 'switch' });
   const fadeOut = h('input', { type: 'checkbox', class: 'switch' });
-  const titleInput = h('input', { type: 'text', value: p.video.tags.title });
-  const artistInput = h('input', { type: 'text', value: p.video.tags.artist });
+  // 有 id 才能讓左邊的「歌名」「演出者」用 for 綁過來，點字就會跳進框裡
+  const titleInput = h('input', { type: 'text', id: 'tag-title', value: p.video.tags.title });
+  const artistInput = h('input', { type: 'text', id: 'tag-artist', value: p.video.tags.artist });
   const message = h('p', { class: 'error-text' });
   const exportBtn = h('button', { class: 'primary big' }, '存成 MP3');
 
@@ -490,9 +492,9 @@ export function editorView(p: EditorProps): EditorView {
       'div',
       { class: 'transport' },
       // 每個畫面只有一顆琥珀主鍵，這個畫面是「存成 MP3」
-      h('button', { onclick: () => previewFrom(currentTrim().start) }, '▶ 試聽成品'),
-      h('button', { onclick: () => previewFrom(endPreviewStart(currentTrim())) }, '▶ 聽結尾'),
-      h('button', { onclick: togglePlain }, '⏯ 播放／暫停', h('span', { class: 'key-hint' }, '空白鍵')),
+      h('button', { onclick: () => previewFrom(currentTrim().start) }, icon('play'), '試聽成品'),
+      h('button', { onclick: () => previewFrom(endPreviewStart(currentTrim())) }, icon('play'), '聽結尾'),
+      h('button', { onclick: togglePlain }, icon('playPause'), '播放／暫停', h('span', { class: 'key-hint' }, '空白鍵')),
       h(
         'div',
         { class: 'fades', role: 'group', 'aria-label': '淡入淡出（2 秒）' },
@@ -510,7 +512,14 @@ export function editorView(p: EditorProps): EditorView {
         'div',
         {},
         h('h3', {}, '歌曲資訊'),
-        h('div', { class: 'tags' }, h('label', {}, '歌名'), titleInput, h('label', {}, '演出者'), artistInput),
+        h(
+          'div',
+          { class: 'tags' },
+          h('label', { for: 'tag-title' }, '歌名'),
+          titleInput,
+          h('label', { for: 'tag-artist' }, '演出者'),
+          artistInput,
+        ),
       ),
     ),
     message,
