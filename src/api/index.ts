@@ -20,6 +20,8 @@ export interface Api {
   onYtdlpUpdating(cb: (updating: boolean) => void): Promise<() => void>;
   /** 使用者按視窗的 ✕（或 Alt+F4）時先問 `shouldClose`，回答 false 就不關；回傳取消攔截的函式。 */
   guardWindowClose(shouldClose: () => Promise<boolean>): () => void;
+  /** Windows 文字大小調大時，把視窗等比例放大（見 src/lib/windowFit.ts）；沒調大就什麼都不做。 */
+  fitWindow(): Promise<void>;
   audioUrl(path: string): string;
   imageUrl(path: string): string;
 }

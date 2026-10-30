@@ -135,6 +135,8 @@ function openEditor(video: VideoInfo, prepared: PreparedAudio) {
 }
 
 async function boot() {
+  // 放大失敗也不影響使用，只是版面維持原本大小
+  void api.fitWindow().catch((e) => console.warn('fitWindow', e));
   appInfo = await api.appInfo();
   ytdlpUpdating = appInfo.ytdlpUpdating;
   await api.onYtdlpUpdating((updating) => {

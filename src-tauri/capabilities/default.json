@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "主視窗可以使用的權限",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-destroy", "opener:default", "dialog:default", "updater:default"]
+  "permissions": ["core:default", "core:window:allow-destroy", "core:window:allow-set-size", "core:window:allow-set-min-size", "core:window:allow-set-position", "core:webview:allow-set-webview-zoom", "opener:default", "dialog:default", "updater:default"]
 }
