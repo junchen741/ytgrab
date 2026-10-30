@@ -7,7 +7,7 @@ const LONG_TITLE =
   '【官方完整版】鄧麗君 Teresa Teng《月亮代表我的心》The Moon Represents My Heart 1977 經典重現 高音質 HD 修復版 Official Music Video Remastered';
 const LONG_CHANNEL = '鄧麗君文教基金會 Teresa Teng Foundation 官方頻道 Official Channel（經典華語老歌與演唱會珍藏影像）';
 const LONG_DIR =
-  'C:\\Users\\SomeoneWithAVeryLongUserName\\Music\\YouTube 音訊\\家人分享\\2026 年\\爸媽的老歌精選\\鄧麗君與其他華語經典老歌收藏資料夾\\第二批';
+  'C:\\Users\\SomeoneWithAVeryLongUserName\\Music\\YouTube 音訊\\收藏分享\\2026 年\\懷舊華語老歌精選\\鄧麗君與其他華語經典老歌收藏資料夾\\第二批';
 
 function svgUrl(width: number, height: number): string {
   const svg =
@@ -75,11 +75,11 @@ export function fixtureCoverUrl(): string {
 }
 
 export function fixtureOutputDir(long: boolean): string {
-  return long ? LONG_DIR : 'C:\\Users\\爸爸\\Music\\YouTube 音訊';
+  return long ? LONG_DIR : 'C:\\Users\\user\\Music\\YouTube 音訊';
 }
 
 export function fixtureSavedPath(long: boolean): string {
-  return long ? `${LONG_DIR}\\${LONG_TITLE} - 鄧麗君.mp3` : 'C:\\Users\\爸爸\\Music\\YouTube 音訊\\月亮代表我的心 - 鄧麗君.mp3';
+  return long ? `${LONG_DIR}\\${LONG_TITLE} - 鄧麗君.mp3` : 'C:\\Users\\user\\Music\\YouTube 音訊\\月亮代表我的心 - 鄧麗君.mp3';
 }
 
 export function fixtureError(long: boolean): AppError {

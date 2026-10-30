@@ -92,7 +92,7 @@ fn new_session_dir(cache_dir: &Path) -> std::io::Result<PathBuf> {
     Ok(dir)
 }
 
-/// yt-dlp 自我更新的時間上限；家裡網路慢時，不讓使用者無限期等下去。
+/// yt-dlp 自我更新的時間上限；網路慢時，不讓使用者無限期等下去。
 const UPDATE_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// 更新 yt-dlp；更新把檔案弄壞時，用安裝時附的版本還原。

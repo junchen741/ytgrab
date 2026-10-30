@@ -69,7 +69,7 @@ async function startFlow(url: string) {
   lastUrl = url;
   const id = ++flowId;
   const stopped = () => id !== flowId;
-  // 開程式時的 yt-dlp 更新還沒結束的話，解析會先等它；先說清楚，免得家人以為當掉了
+  // 開程式時的 yt-dlp 更新還沒結束的話，解析會先等它；先說清楚，免得使用者以為當掉了
   const progress = home.startWork(ytdlpUpdating ? UPDATING_TEXT : '正在讀取影片資訊…', () => {
     // 後端收到後會結束 yt-dlp／ffmpeg；不用等它，直接回首頁，網址留在框裡
     flowId++;

@@ -1,4 +1,4 @@
-//! 把 yt-dlp / ffmpeg 的錯誤分類，轉成家人看得懂的訊息。
+//! 把 yt-dlp / ffmpeg 的錯誤分類，轉成一般使用者看得懂的訊息。
 
 use crate::segments::TrimError;
 use serde::Serialize;

@@ -75,4 +75,4 @@ gh release create $tag (Join-Path $out $asset) (Join-Path $out 'latest.json') --
 if ($LASTEXITCODE -ne 0) { throw '建立 Release 失敗；標籤已經推上去了，修好問題後只要重跑上面這行 gh release create' }
 
 Write-Host "已發佈 ${tag}：https://github.com/$repo/releases/tag/$tag"
-Write-Host "給家人的下載連結（固定不變）：https://github.com/$repo/releases/latest/download/$asset"
+Write-Host "固定下載連結（永遠指向最新版）：https://github.com/$repo/releases/latest/download/$asset"
